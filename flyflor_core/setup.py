@@ -75,7 +75,7 @@ CHANNEL_PRESETS: dict[str, dict[str, Any]] = {
     },
     "weixin": {
         "label": "微信 / Weixin",
-        "description": "QR login; run `flyflor nanobot channels login weixin` after setup",
+        "description": "QR login; configure through Flyflor channel setup after initialization",
         "fields": [
             {"name": "allowFrom", "label": "Allow from", "default": ["*"], "type": "csv"},
             {"name": "token", "label": "Saved token", "default": "", "secret": True},
@@ -112,7 +112,7 @@ CHANNEL_PRESETS: dict[str, dict[str, Any]] = {
     },
     "whatsapp": {
         "label": "WhatsApp",
-        "description": "QR login; run `flyflor nanobot channels login whatsapp` after setup",
+        "description": "QR login; configure through Flyflor channel setup after initialization",
         "fields": [
             {"name": "allowFrom", "label": "Allow from", "default": ["*"], "type": "csv"},
         ],
@@ -162,6 +162,8 @@ WORKER_PRESETS: dict[str, dict[str, Any]] = {
         "kind": "cli",
         "command": ["codex"],
         "install": ["npm", "install", "-g", "@openai/codex"],
+        "init": ["codex", "login"],
+        "configure": ["codex"],
         "env": {"CODEX_HOME": "{home}/agents/codex"},
         "description": "OpenAI Codex CLI",
     },
@@ -170,6 +172,8 @@ WORKER_PRESETS: dict[str, dict[str, Any]] = {
         "kind": "cli",
         "command": ["claude"],
         "install": ["npm", "install", "-g", "@anthropic-ai/claude-code"],
+        "init": ["claude", "auth"],
+        "configure": ["claude", "auth"],
         "env": {"CLAUDE_CONFIG_DIR": "{home}/agents/claude"},
         "description": "Anthropic Claude Code",
     },
@@ -178,6 +182,8 @@ WORKER_PRESETS: dict[str, dict[str, Any]] = {
         "kind": "cli",
         "command": ["copilot"],
         "install": ["npm", "install", "-g", "@github/copilot"],
+        "init": ["copilot", "login"],
+        "configure": ["copilot", "login"],
         "env": {"COPILOT_CONFIG_DIR": "{home}/agents/copilot"},
         "description": "GitHub Copilot CLI",
     },
@@ -186,6 +192,8 @@ WORKER_PRESETS: dict[str, dict[str, Any]] = {
         "kind": "cli",
         "command": ["opencode"],
         "install": ["npm", "install", "-g", "opencode-ai"],
+        "init": ["opencode", "providers"],
+        "configure": ["opencode", "providers"],
         "env": {},
         "description": "OpenCode terminal agent",
     },
@@ -194,6 +202,8 @@ WORKER_PRESETS: dict[str, dict[str, Any]] = {
         "kind": "cli",
         "command": ["qwen"],
         "install": ["npm", "install", "-g", "@qwen-code/qwen-code"],
+        "init": ["qwen", "auth", "login"],
+        "configure": ["qwen", "auth", "login"],
         "env": {},
         "description": "Qwen Code CLI or user-provided wrapper",
     },
@@ -206,21 +216,30 @@ WORKER_PRESETS: dict[str, dict[str, Any]] = {
             "-lc",
             "python -m pip install --upgrade uv && uv tool install kimi-cli --force && ln -sf \"$HOME/.local/bin/kimi\" /usr/local/bin/kimi",
         ],
+        "init": ["kimi", "login"],
+        "configure": ["kimi", "login"],
         "env": {},
         "description": "Kimi CLI or user-provided wrapper",
     },
     "deepseek-tui": {
         "enabled": False,
         "kind": "cli",
-        "command": ["deepseek-tui"],
-        "env": {},
-        "description": "DeepSeek CLI or user-provided wrapper",
+        "command": ["deepseek"],
+        "install": ["npm", "install", "-g", "deepseek-tui"],
+        "init": ["deepseek", "auth", "set", "--provider", "deepseek"],
+        "configure": ["deepseek", "auth", "set", "--provider", "deepseek"],
+        "env": {
+            "DEEPSEEK_MEMORY": "on",
+        },
+        "description": "DeepSeek TUI dispatcher and terminal coding agent",
     },
     "gemini": {
         "enabled": False,
         "kind": "cli",
         "command": ["gemini"],
         "install": ["npm", "install", "-g", "@google/gemini-cli"],
+        "init": ["gemini", "auth", "login"],
+        "configure": ["gemini", "auth", "login"],
         "env": {},
         "description": "Google Gemini CLI",
     },
@@ -301,6 +320,50 @@ def default_flyflor_config(*, core_port: int, websocket_port: int) -> dict[str, 
             "email": disabled_channel("email"),
         },
         "workers": {name: deepcopy(WORKER_PRESETS[name]) for name in WORKER_ORDER},
+        "toolProfiles": {
+            "base": {
+                "home": "{home}/agents/home",
+                "xdgConfig": "{home}/xdg/config",
+                "xdgCache": "{home}/xdg/cache",
+                "xdgData": "{home}/xdg/data",
+                "tmp": "{home}/tmp",
+            },
+            "codex": {
+                "env": {"CODEX_HOME": "{home}/agents/codex"},
+                "configDir": "{home}/agents/codex",
+            },
+            "claude": {
+                "env": {"CLAUDE_CONFIG_DIR": "{home}/agents/claude"},
+                "configDir": "{home}/agents/claude",
+            },
+            "copilot": {
+                "env": {"COPILOT_CONFIG_DIR": "{home}/agents/copilot"},
+                "configDir": "{home}/agents/copilot",
+            },
+            "opencode": {
+                "env": {"OPENCODE_CONFIG_DIR": "{home}/agents/opencode"},
+                "configDir": "{home}/agents/opencode",
+            },
+            "qwen-code": {
+                "env": {"QWEN_CONFIG_DIR": "{home}/agents/qwen"},
+                "configDir": "{home}/agents/qwen",
+            },
+            "kimi": {
+                "env": {"KIMI_CONFIG_HOME": "{home}/agents/kimi"},
+                "configDir": "{home}/agents/kimi",
+            },
+            "deepseek-tui": {
+                "env": {
+                    "DEEPSEEK_CONFIG_HOME": "{home}/agents/deepseek",
+                    "DEEPSEEK_MEMORY": "on",
+                },
+                "configDir": "{home}/agents/deepseek",
+            },
+            "gemini": {
+                "env": {"GEMINI_CONFIG_DIR": "{home}/agents/gemini"},
+                "configDir": "{home}/agents/gemini",
+            },
+        },
         "bridge": {
             "mode": "guardian_pair",
             "autoSelect": False,
@@ -314,7 +377,7 @@ def default_flyflor_config(*, core_port: int, websocket_port: int) -> dict[str, 
 
 def merge_user_setup(existing: dict[str, Any], generated: dict[str, Any]) -> dict[str, Any]:
     merged = dict(generated)
-    for key in ("primary", "channels", "workers", "bridge"):
+    for key in ("primary", "channels", "workers", "toolProfiles", "bridge"):
         value = existing.get(key)
         if isinstance(value, dict):
             base = dict(merged.get(key, {}))
@@ -328,7 +391,17 @@ def merge_user_setup(existing: dict[str, Any], generated: dict[str, Any]) -> dic
             merged[key] = base
     merged["initialized"] = bool(existing.get("initialized", generated.get("initialized", True)))
     merged["version"] = existing.get("version", generated.get("version", CONFIG_VERSION))
+    migrate_legacy_worker_defaults(merged)
     return merged
+
+
+def migrate_legacy_worker_defaults(config: dict[str, Any]) -> None:
+    workers = config.get("workers")
+    if not isinstance(workers, dict):
+        return
+    deepseek = workers.get("deepseek-tui")
+    if isinstance(deepseek, dict) and deepseek.get("command") == ["deepseek-tui"]:
+        deepseek["command"] = ["deepseek"]
 
 
 def disabled_channel(name: str) -> dict[str, Any]:

@@ -111,7 +111,13 @@ npm install -g @openai/codex @anthropic-ai/claude-code @github/copilot
 flyflor setup
 ```
 
-启动本机主入口：
+打开本机主入口：
+
+```bash
+flyflor
+```
+
+裸 `flyflor` 默认进入 Textual TUI。TUI 会按步骤展示 primary route、channel、worker、tool profile、guardian pair 和 gateway 状态。启动后台网关仍使用：
 
 ```bash
 flyflor gateway
@@ -144,7 +150,7 @@ flyflor gateway --websocket-port 18765
 本机模式的暴露原则：
 
 ```text
-外部只暴露顶层 flyflor/nanobot 渠道
+外部只暴露 Flyflor 顶层渠道
 内部 Core 只绑定 127.0.0.1:8080
 内部 Qdrant 只绑定 127.0.0.1:6333
 ```
@@ -233,6 +239,15 @@ data/flyflor/nanobot/config.json
 flyflor setup
 ```
 
+如果已经初始化过，裸 `flyflor setup` 会进入重新配置流程，当前值会作为默认值，按 Enter 即可保留。常用语义：
+
+```bash
+flyflor setup                    # 首次初始化，或交互式重新配置
+flyflor setup --defaults         # 非交互刷新：补齐新增默认项并重新生成 nanobot 配置
+flyflor setup --force            # 从内置默认模板重置后再交互配置
+flyflor setup --force --defaults # 非交互重置为内置默认配置
+```
+
 交互式 setup 会依次处理：
 
 ```text
@@ -253,6 +268,21 @@ flyflor setup --defaults
 
 ```bash
 flyflor workers
+flyflor workers status
+flyflor workers install codex
+flyflor workers init codex
+flyflor workers config codex
+flyflor workers run codex
+flyflor run codex
+```
+
+CLI 命令族参考 Hermes Agent 的分层方式：`setup` 负责初始化，`gateway run/status` 负责运行态，`status` 和 `doctor` 负责诊断，`config` 负责配置路径/查看/编辑，`logs` 负责日志，`workers` 负责各个 TUI/CLI 工具的安装、初始化、配置和启动。普通命令使用 Rich 渲染 header、表格和进度条；需要全屏管理时使用 Textual：
+
+```bash
+flyflor status --deep
+flyflor doctor
+flyflor logs list
+flyflor
 ```
 
 默认 worker 预设：
@@ -269,6 +299,20 @@ qwen-code      Qwen Code CLI
 kimi           Kimi CLI 或用户自定义 wrapper
 deepseek-tui   DeepSeek CLI 或用户自定义 wrapper
 ```
+
+每个内置 TUI/CLI worker 都有独立配置入口。`workers init` 用于第一次登录/初始化；`workers config` 用于重新进入该工具自己的配置或 auth TUI。示例：
+
+```bash
+flyflor workers config codex
+flyflor workers config claude
+flyflor workers config opencode
+flyflor workers config qwen-code
+flyflor workers config kimi
+flyflor workers config deepseek-tui
+flyflor workers config gemini
+```
+
+这些命令会在 Flyflor 隔离环境中运行，例如 `CODEX_HOME=~/.flyflor/agents/codex`、`CLAUDE_CONFIG_DIR=~/.flyflor/agents/claude`，避免污染你个人日常 CLI 配置。
 
 `setup` 会先让你选择启用哪些 worker，然后选择默认讨论组合：
 
@@ -361,21 +405,27 @@ Docker 模式下对应目录在：
 /data/flyflor/agents/copilot
 ```
 
-如果要登录或初始化 Flyflor 专用 Codex / Claude，不要直接运行全局命令，而是运行：
+如果要登录或初始化 Flyflor 内部 TUI 工具，不要直接运行全局命令，也不要把 `codex`、`claude`、`copilot` 当作 Flyflor 顶层命令。统一使用 worker 配置入口：
 
 ```bash
-flyflor codex
-flyflor claude
+flyflor workers config codex
+flyflor workers config claude
+flyflor workers config copilot
+flyflor workers config opencode
+flyflor workers config qwen-code
+flyflor workers config kimi
+flyflor workers config deepseek-tui
+flyflor workers config gemini
 ```
 
 Docker 内：
 
 ```bash
-docker exec -it flyflor flyflor codex
-docker exec -it flyflor flyflor claude
+docker exec -it flyflor flyflor workers config codex
+docker exec -it flyflor flyflor workers config claude
 ```
 
-这样登录态、配置、缓存都会落在 Flyflor 内部，不会碰用户全局配置。
+这些命令会读取 Flyflor 自己的 `toolProfiles` 配置表，把 `HOME`、`XDG_*`、`CODEX_HOME`、`CLAUDE_CONFIG_DIR` 等环境变量注入到对应工具进程。登录态、配置、缓存都会落在 Flyflor 内部，不会碰用户全局配置。
 
 ## 创建任务
 
@@ -409,7 +459,7 @@ WebSocket -> nanobot -> Flyflor /v1/chat/completions -> SQLite blackboard -> Web
 
 Flyflor 不直接实现 QQ、飞书、钉钉、Slack、Telegram、邮件这些渠道。
 
-顶层统一使用 `flyflor gateway`。它内部会启动 nanobot gateway，但对外命名和运维入口都是 Flyflor：
+顶层默认使用裸 `flyflor` 进入 Textual TUI；运行态使用 `flyflor gateway`。内部会启动 channel gateway，但 nanobot 是实现细节，不作为公开用户入口：
 
 ```text
 通讯渠道 / WebSocket
@@ -418,7 +468,7 @@ Flyflor 不直接实现 QQ、飞书、钉钉、Slack、Telegram、邮件这些�
 flyflor gateway
         |
         v
-nanobot gateway（内部）
+channel gateway（内部，当前由 nanobot 提供）
         |
         v
 Flyflor OpenAI-compatible endpoint

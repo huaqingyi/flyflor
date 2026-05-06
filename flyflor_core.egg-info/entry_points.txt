@@ -1,0 +1,4 @@
+[console_scripts]
+flyflor = flyflor_core.cli:main
+flyflor-bridge = flyflor_core.bridge_daemon:main
+flyflor-core = flyflor_core.__main__:main
