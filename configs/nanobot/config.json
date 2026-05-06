@@ -1,0 +1,27 @@
+{
+  "providers": {
+    "vllm": {
+      "apiKey": null,
+      "apiBase": "http://127.0.0.1:8080/v1"
+    }
+  },
+  "agents": {
+    "defaults": {
+      "workspace": "/workspace",
+      "provider": "vllm",
+      "model": "flyflor-placeholder",
+      "disabledSkills": ["memory", "cron"]
+    }
+  },
+  "channels": {
+    "websocket": {
+      "enabled": true,
+      "host": "0.0.0.0",
+      "port": 8765,
+      "path": "/",
+      "websocketRequiresToken": false,
+      "allowFrom": ["*"],
+      "streaming": true
+    }
+  }
+}

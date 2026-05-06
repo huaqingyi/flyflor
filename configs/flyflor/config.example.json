@@ -1,0 +1,22 @@
+{
+  "core": {
+    "host": "0.0.0.0",
+    "port": 8080,
+    "home": "/data/flyflor",
+    "database": "/data/flyflor/flyflor.db"
+  },
+  "qdrant": {
+    "url": "http://127.0.0.1:6333",
+    "collection": "flyflor_memory"
+  },
+  "bridges": {
+    "codex": {
+      "enabled": true,
+      "command": "codex"
+    },
+    "claude": {
+      "enabled": true,
+      "command": "claude"
+    }
+  }
+}
