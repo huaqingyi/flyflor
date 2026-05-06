@@ -7,7 +7,12 @@ mkdir -p \
   /data/flyflor/agents/codex \
   /data/flyflor/agents/claude \
   /data/flyflor/agents/copilot \
-  /data/flyflor/nanobot \
+  /data/flyflor/agents/opencode \
+  /data/flyflor/agents/qwen \
+  /data/flyflor/agents/kimi \
+  /data/flyflor/agents/deepseek \
+  /data/flyflor/agents/gemini \
+  /data/flyflor/channel \
   /data/flyflor/xdg/config \
   /data/flyflor/xdg/cache \
   /data/flyflor/xdg/data \
@@ -20,21 +25,27 @@ export HOME=/data/flyflor/agents/home
 export CODEX_HOME=/data/flyflor/agents/codex
 export CLAUDE_CONFIG_DIR=/data/flyflor/agents/claude
 export COPILOT_CONFIG_DIR=/data/flyflor/agents/copilot
+export OPENCODE_CONFIG_DIR=/data/flyflor/agents/opencode
+export QWEN_CONFIG_DIR=/data/flyflor/agents/qwen
+export KIMI_CONFIG_HOME=/data/flyflor/agents/kimi
+export DEEPSEEK_CONFIG_HOME=/data/flyflor/agents/deepseek
+export GEMINI_CONFIG_DIR=/data/flyflor/agents/gemini
+export DEEPSEEK_MEMORY=on
 export XDG_CONFIG_HOME=/data/flyflor/xdg/config
 export XDG_CACHE_HOME=/data/flyflor/xdg/cache
 export XDG_DATA_HOME=/data/flyflor/xdg/data
 export TMPDIR=/data/flyflor/tmp
 
-if [ -L /root/.nanobot ] && [ "$(readlink /root/.nanobot)" = "/data/flyflor/nanobot" ]; then
+if [ -L /root/.nanobot ] && [ "$(readlink /root/.nanobot)" = "/data/flyflor/channel" ]; then
   :
 else
   if [ -d /root/.nanobot ]; then
-    if [ ! -f /data/flyflor/nanobot/config.json ] && [ -f /root/.nanobot/config.json ]; then
-      cp /root/.nanobot/config.json /data/flyflor/nanobot/config.json
+    if [ ! -f /data/flyflor/channel/config.json ] && [ -f /root/.nanobot/config.json ]; then
+      cp /root/.nanobot/config.json /data/flyflor/channel/config.json
     fi
     rm -rf /root/.nanobot
   fi
-  ln -s /data/flyflor/nanobot /root/.nanobot
+  ln -s /data/flyflor/channel /root/.nanobot
 fi
 
 for pair in \
@@ -68,7 +79,7 @@ else
   exit 1
 fi
 
-start_background nanobot nanobot gateway --config /data/flyflor/nanobot/config.json
+start_background channel flyflor --home /data/flyflor internal-nanobot gateway
 start_background bridge flyflor bridge-daemon
 
 exec "$@"

@@ -19,6 +19,12 @@ services:
       CODEX_HOME: /data/flyflor/agents/codex
       CLAUDE_CONFIG_DIR: /data/flyflor/agents/claude
       COPILOT_CONFIG_DIR: /data/flyflor/agents/copilot
+      OPENCODE_CONFIG_DIR: /data/flyflor/agents/opencode
+      QWEN_CONFIG_DIR: /data/flyflor/agents/qwen
+      KIMI_CONFIG_HOME: /data/flyflor/agents/kimi
+      DEEPSEEK_CONFIG_HOME: /data/flyflor/agents/deepseek
+      GEMINI_CONFIG_DIR: /data/flyflor/agents/gemini
+      DEEPSEEK_MEMORY: "on"
       XDG_CONFIG_HOME: /data/flyflor/xdg/config
       XDG_CACHE_HOME: /data/flyflor/xdg/cache
       XDG_DATA_HOME: /data/flyflor/xdg/data

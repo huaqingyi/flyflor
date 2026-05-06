@@ -204,9 +204,9 @@ docker exec flyflor curl -s http://127.0.0.1:6333/
 容器内 CLI：
 
 ```bash
-docker exec flyflor flyflor codex --version
-docker exec flyflor flyflor claude --version
-docker exec flyflor flyflor nanobot --version
+docker exec flyflor flyflor workers
+docker exec -it flyflor flyflor workers config codex
+docker exec -it flyflor flyflor workers config claude
 ```
 
 ## Setup 配置
@@ -729,26 +729,26 @@ Telegram 需要从 `@BotFather` 创建 bot，拿到 token：
 
 ### WhatsApp / 微信扫码登录
 
-这类渠道需要在容器内执行 nanobot 登录命令，二维码登录态会保存到 Flyflor 内部 nanobot 目录。
+这类渠道需要进入 Flyflor channel 配置流程，二维码登录态会保存到 Flyflor 内部 channel gateway 目录。
 
 WhatsApp：
 
 ```bash
-docker exec -it flyflor flyflor nanobot channels login whatsapp
+docker exec -it flyflor flyflor setup
 docker compose restart flyflor
 ```
 
 微信 Weixin：
 
 ```bash
-docker exec -it flyflor flyflor nanobot channels login weixin
+docker exec -it flyflor flyflor setup
 docker compose restart flyflor
 ```
 
 如果要强制重新登录：
 
 ```bash
-docker exec -it flyflor flyflor nanobot channels login weixin --force
+docker exec -it flyflor flyflor setup --force
 ```
 
 对应配置：

@@ -156,9 +156,15 @@ Host install:
 curl -fsSL https://raw.githubusercontent.com/huaqingyi/flyflor/main/scripts/install.sh | bash
 ```
 
-The installer needs Python 3.11 or newer. It will prefer `python3.13`, `python3.12`, then `python3.11`; export `FLYFLOR_PYTHON=/path/to/python3.11` before running the pipe if needed. It clones this repo, installs Flyflor and vendored nanobot into a private venv under `~/.flyflor/venv`, links the `flyflor` command into `~/.local/bin`, and installs Node-based worker CLIs into a user-level prefix. Override paths with `FLYFLOR_INSTALL_DIR`, `FLYFLOR_VENV`, `FLYFLOR_BIN_DIR`, or `FLYFLOR_NPM_PREFIX`.
+The installer needs Python 3.11 or newer. It will prefer `python3.13`, `python3.12`, then `python3.11`; export `FLYFLOR_PYTHON=/path/to/python3.11` before running the pipe if needed. It clones this repo, installs Flyflor and its internal channel gateway dependency into a private venv under `~/.flyflor/venv`, links the `flyflor` command into `~/.local/bin`, and installs Node-based worker CLIs into a user-level prefix. Override paths with `FLYFLOR_INSTALL_DIR`, `FLYFLOR_VENV`, `FLYFLOR_BIN_DIR`, or `FLYFLOR_NPM_PREFIX`.
 
 Start:
+
+```bash
+flyflor
+```
+
+Start the gateway:
 
 ```bash
 flyflor gateway
@@ -182,7 +188,7 @@ The default stack starts one Flyflor appliance container with:
 
 - Flyflor Core / Web Console on `http://127.0.0.1:8080`;
 - Qdrant inside the same container on `http://127.0.0.1:6333`;
-- nanobot WebSocket gateway on `ws://localhost:8765`;
+- internal channel gateway on `ws://localhost:8765`;
 - SQLite data under `./data/flyflor`.
 
 Health check:
@@ -200,7 +206,7 @@ curl -X POST http://localhost:8080/tasks \
   -d '{"title":"Test bridge task","input":"Have Codex and Claude discuss the project skeleton."}'
 ```
 
-OpenAI-compatible smoke test used by nanobot:
+OpenAI-compatible smoke test used by the channel gateway:
 
 ```bash
 curl -X POST http://localhost:8080/v1/chat/completions \
@@ -208,12 +214,12 @@ curl -X POST http://localhost:8080/v1/chat/completions \
   -d '{"model":"flyflor-placeholder","messages":[{"role":"user","content":"Create a Flyflor task"}]}'
 ```
 
-Installed CLIs inside the container:
+Worker tools are managed through Flyflor:
 
 ```bash
-docker exec flyflor codex --version
-docker exec flyflor claude --version
-docker exec flyflor nanobot --version
+docker exec flyflor flyflor workers
+docker exec -it flyflor flyflor workers config codex
+docker exec -it flyflor flyflor workers config claude
 ```
 
 Source code is mounted into the running containers by Docker Compose:

@@ -96,7 +96,7 @@ def main(argv: list[str] | None = None) -> None:
     gateway_parser.add_argument("--qdrant-http-port", type=int, default=DEFAULT_QDRANT_HTTP_PORT)
     gateway_parser.add_argument("--qdrant-grpc-port", type=int, default=DEFAULT_QDRANT_GRPC_PORT)
     gateway_parser.add_argument("--websocket-port", type=int, default=DEFAULT_WEBSOCKET_PORT)
-    gateway_parser.add_argument("--nanobot-port", type=int, default=None, help="nanobot health port")
+    gateway_parser.add_argument("--channel-port", type=int, default=None, help="internal channel gateway health port")
     gateway_parser.add_argument("--skip-qdrant", action="store_true", help="Do not start local qdrant")
     gateway_parser.add_argument("--json", action="store_true", help="Print machine-readable status for `gateway status`")
 
@@ -127,7 +127,7 @@ def main(argv: list[str] | None = None) -> None:
     config_parser.add_argument(
         "config_action",
         nargs="?",
-        choices=["show", "path", "nanobot-path", "edit", "check"],
+        choices=["show", "path", "channel-config-path", "edit", "check"],
         default="show",
     )
     config_parser.add_argument("--json", action="store_true", help="Print raw JSON for `config show`")
@@ -162,7 +162,7 @@ def main(argv: list[str] | None = None) -> None:
                 home=home,
                 core_port=args.core_port,
                 qdrant_http_port=args.qdrant_http_port,
-                nanobot_port=args.nanobot_port,
+                nanobot_port=args.channel_port,
                 as_json=args.json,
             )
         else:
@@ -172,7 +172,7 @@ def main(argv: list[str] | None = None) -> None:
                 qdrant_http_port=args.qdrant_http_port,
                 qdrant_grpc_port=args.qdrant_grpc_port,
                 websocket_port=args.websocket_port,
-                nanobot_port=args.nanobot_port,
+                nanobot_port=args.channel_port,
                 skip_qdrant=args.skip_qdrant,
             )
         return
@@ -239,11 +239,11 @@ def run_setup(home: Path, *, defaults: bool, force: bool) -> None:
         rich_print(
             f"[green]Refreshed Flyflor setup at {home}[/]\n"
             f"setup config: {setup_path}\n"
-            f"nanobot config: {nanobot_config_path(home)}"
+            f"channel config: {nanobot_config_path(home)}"
             if console is not None
             else f"Refreshed Flyflor setup at {home}\n"
             f"setup config: {setup_path}\n"
-            f"nanobot config: {nanobot_config_path(home)}"
+            f"channel config: {nanobot_config_path(home)}"
         )
         return
 
@@ -270,7 +270,7 @@ def run_setup(home: Path, *, defaults: bool, force: bool) -> None:
         action = "Initialized Flyflor"
     print(f"{action} at {home}")
     print(f"setup config: {setup_path}")
-    print(f"nanobot config: {nanobot_config_path(home)}")
+    print(f"channel config: {nanobot_config_path(home)}")
 
 
 def require_initialized(home: Path) -> None:
@@ -954,12 +954,12 @@ def gateway_status_payload(
         "qdrant": probe_http(f"http://127.0.0.1:{qdrant_http_port}/"),
     }
     if nanobot_port is not None:
-        checks["nanobot"] = probe_http(f"http://127.0.0.1:{nanobot_port}/health")
+        checks["channel"] = probe_http(f"http://127.0.0.1:{nanobot_port}/health")
     return {
         "home": str(home),
         "logs": str(home / "logs"),
         "config": str(flyflor_config_path(home)),
-        "nanobot_config": str(nanobot_config_path(home)),
+        "channel_config": str(nanobot_config_path(home)),
         "checks": checks,
     }
 
@@ -1022,8 +1022,8 @@ def status_payload(home: Path, *, deep: bool) -> dict[str, object]:
         "initialized": initialized,
         "config": str(flyflor_config_path(home)),
         "config_exists": flyflor_config_path(home).exists(),
-        "nanobot_config": str(nanobot_config_path(home)),
-        "nanobot_config_exists": nanobot_config_path(home).exists(),
+        "channel_config": str(nanobot_config_path(home)),
+        "channel_config_exists": nanobot_config_path(home).exists(),
         "primary": redact_config(primary),
         "bridge": bridge,
         "workers": worker_statuses(home) if initialized else {},
@@ -1053,8 +1053,8 @@ def print_status(home: Path, *, deep: bool, as_json: bool) -> None:
         summary.add_row("initialized", "[green]yes[/]" if payload["initialized"] else "[yellow]no[/]")
         summary.add_row("config", f"{payload['config']} ({'exists' if payload['config_exists'] else 'missing'})")
         summary.add_row(
-            "nanobot config",
-            f"{payload['nanobot_config']} ({'exists' if payload['nanobot_config_exists'] else 'missing'})",
+            "channel config",
+            f"{payload['channel_config']} ({'exists' if payload['channel_config_exists'] else 'missing'})",
         )
         primary = payload.get("primary")
         if isinstance(primary, dict):
@@ -1080,7 +1080,7 @@ def print_status(home: Path, *, deep: bool, as_json: bool) -> None:
     print(f"  home: {payload['home']}")
     print(f"  initialized: {'yes' if payload['initialized'] else 'no'}")
     print(f"  config: {payload['config']} ({'exists' if payload['config_exists'] else 'missing'})")
-    print(f"  nanobot config: {payload['nanobot_config']} ({'exists' if payload['nanobot_config_exists'] else 'missing'})")
+    print(f"  channel config: {payload['channel_config']} ({'exists' if payload['channel_config_exists'] else 'missing'})")
     primary = payload.get("primary")
     if isinstance(primary, dict):
         print(f"  primary: {primary.get('provider', '?')} / {primary.get('model', '?')}")
@@ -1114,14 +1114,14 @@ def run_doctor(home: Path, *, fix: bool, as_json: bool) -> None:
     add("python", sys.version_info >= (3, 11), platform.python_version())
     add("home", home.exists(), str(home), fixable=True)
     add("setup", is_initialized(home), str(flyflor_config_path(home)), fixable=False)
-    add("nanobot command", shutil.which("nanobot") is not None, shutil.which("nanobot") or "not found")
+    add("channel gateway command", shutil.which("nanobot") is not None, shutil.which("nanobot") or "not found")
     add("qdrant command", shutil.which("qdrant") is not None, shutil.which("qdrant") or "not found; gateway can run with --skip-qdrant")
 
     if is_initialized(home):
         setup = load_flyflor_config(home)
         if fix and not nanobot_config_path(home).exists():
             write_nanobot_config_from_setup(home, setup)
-    add("nanobot config", nanobot_config_path(home).exists(), str(nanobot_config_path(home)), fixable=True)
+    add("channel config", nanobot_config_path(home).exists(), str(nanobot_config_path(home)), fixable=True)
 
     if is_initialized(home):
         for name, status in worker_statuses(home).items():
@@ -1168,7 +1168,7 @@ def handle_config(home: Path, *, action: str, as_json: bool) -> None:
     if action == "path":
         print(flyflor_config_path(home))
         return
-    if action == "nanobot-path":
+    if action == "channel-config-path":
         print(nanobot_config_path(home))
         return
     if action == "edit":
@@ -1371,6 +1371,7 @@ def ensure_layout(
         home,
         home / "logs",
         home / "qdrant" / "storage",
+        home / "channel",
         home / "nanobot",
         home / "workspace",
         home / "memory",
@@ -1397,7 +1398,7 @@ def ensure_layout(
 
 
 def nanobot_config_path(home: Path) -> Path:
-    return home / "nanobot" / "config.json"
+    return home / "channel" / "config.json"
 
 
 def runtime_env(home: Path, *, core_port: int = DEFAULT_CORE_PORT, qdrant_http_port: int = DEFAULT_QDRANT_HTTP_PORT) -> dict[str, str]:

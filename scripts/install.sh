@@ -76,9 +76,6 @@ fi
 ln -sf "$FLYFLOR_VENV/bin/flyflor" "$FLYFLOR_BIN_DIR/flyflor"
 ln -sf "$FLYFLOR_VENV/bin/flyflor-core" "$FLYFLOR_BIN_DIR/flyflor-core"
 ln -sf "$FLYFLOR_VENV/bin/flyflor-bridge" "$FLYFLOR_BIN_DIR/flyflor-bridge"
-if [ -x "$FLYFLOR_VENV/bin/nanobot" ]; then
-  ln -sf "$FLYFLOR_VENV/bin/nanobot" "$FLYFLOR_BIN_DIR/nanobot"
-fi
 
 if [ "$FLYFLOR_SKIP_NODE_TOOLS" != "1" ]; then
   npm install --prefix "$FLYFLOR_NPM_PREFIX" -g @openai/codex @anthropic-ai/claude-code @github/copilot
@@ -136,17 +133,20 @@ cat <<'MSG'
 Flyflor installed.
 
 Start:
+  flyflor
+
+Start gateway:
   flyflor gateway
 
 Open Web Console after gateway starts:
   open http://127.0.0.1:8080
 
-Run isolated Codex / Claude / Copilot:
-  flyflor codex --version
-  flyflor claude --version
-  flyflor copilot --version
+Configure isolated TUI tools:
+  flyflor workers config codex
+  flyflor workers config claude
+  flyflor workers config copilot
 
 Configure channels:
-  $EDITOR ~/.flyflor/nanobot/config.json
+  flyflor setup
 
 MSG
