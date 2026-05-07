@@ -45,7 +45,7 @@ echo '    "group_trigger": { "mention_only": true }'
 echo '  }'
 echo ""
 echo "Then run picoclaw:"
-echo "  cd packages/picoclaw && go run ./cmd/picoclaw gateway"
+echo "  cd packages/picoclaw && go run ./cmd/flyflor gateway"
 echo ""
 echo "Connect with an IRC client:"
 echo "  irssi:   /connect localhost $IRC_PORT"

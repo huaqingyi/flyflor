@@ -672,7 +672,7 @@ Ajoutez une entrée par défaut dans `pkg/config/defaults.go` :
 
 #### 5. Ajouter le support d'authentification (optionnel)
 
-Si votre fournisseur nécessite OAuth ou une authentification spéciale, ajoutez un cas dans `cmd/picoclaw/internal/auth/helpers.go` :
+Si votre fournisseur nécessite OAuth ou une authentification spéciale, ajoutez un cas dans `cmd/flyflor/internal/auth/helpers.go` :
 
 ```go
 case "your-provider":
@@ -734,7 +734,7 @@ export PICOCLAW_MODEL_LIST='[{"model_name":"your-model","model":"your-provider/m
   - `pkg/auth/store.go` - Stockage des identifiants d'authentification (`~/.picoclaw/auth.json`)
   - `pkg/providers/factory.go` - Factory des fournisseurs et routage de protocole
   - `pkg/providers/types.go` - Définitions de l'interface fournisseur
-  - `cmd/picoclaw/internal/auth/helpers.go` - Commandes CLI d'authentification
+  - `cmd/flyflor/internal/auth/helpers.go` - Commandes CLI d'authentification
 
 - **Documentation :**
   - `docs/ANTIGRAVITY_USAGE.md` - Guide d'utilisation d'Antigravity

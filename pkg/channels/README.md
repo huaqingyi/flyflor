@@ -1,6 +1,6 @@
 # PicoClaw Channel System: Complete Development Guide
 
-> **Scope**: `pkg/channels/`, `pkg/bus/`, `pkg/media/`, `pkg/identity/`, `cmd/picoclaw/internal/gateway/`
+> **Scope**: `pkg/channels/`, `pkg/bus/`, `pkg/media/`, `pkg/identity/`, `cmd/flyflor/internal/gateway/`
 
 ---
 
@@ -341,7 +341,7 @@ func init() {
 **3h. Import sub-package in Gateway**
 
 ```go
-// cmd/picoclaw/internal/gateway/helpers.go
+// cmd/flyflor/internal/gateway/helpers.go
 import (
     _ "github.com/sipeed/picoclaw/pkg/channels/telegram"   // Triggers init() registration
     _ "github.com/sipeed/picoclaw/pkg/channels/discord"
@@ -841,7 +841,7 @@ just register the factory and the config entry.
 #### Add blank import in Gateway
 
 ```go
-// cmd/picoclaw/internal/gateway/helpers.go
+// cmd/flyflor/internal/gateway/helpers.go
 import (
     _ "github.com/sipeed/picoclaw/pkg/channels/matrix"
 )

@@ -49,6 +49,7 @@ type AgentLoop struct {
 	// Runtime state
 	running        atomic.Bool
 	contextManager ContextManager
+	blackboard     *BlackboardScheduler
 	fallback       *providers.FallbackChain
 	channelManager interfaces.ChannelManager
 	mediaStore     media.MediaStore
@@ -520,6 +521,14 @@ func (al *AgentLoop) runAgentLoop(
 		opts.Dispatch.SessionScope,
 		opts.Dispatch.SessionAliases,
 	)
+
+	if al.blackboard != nil {
+		lease, err := al.blackboard.BeginTurn(opts.Dispatch.SessionKey)
+		if err != nil {
+			return "", err
+		}
+		defer lease.Done()
+	}
 
 	turnScope := al.newTurnEventScope(
 		agent.ID,

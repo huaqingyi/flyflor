@@ -60,6 +60,7 @@ func NewAgentLoop(
 		cfg:               cfg,
 		registry:          registry,
 		state:             stateManager,
+		blackboard:        NewBlackboardScheduler(nil),
 		fallback:          fallbackChain,
 		cmdRegistry:       commands.NewRegistry(commands.BuiltinDefinitions()),
 		steering:          newSteeringQueue(parseSteeringMode(cfg.Agents.Defaults.SteeringMode)),
@@ -80,11 +81,32 @@ func NewAgentLoop(
 	al.hooks = NewHookManager(al.runtimeEvents.Channel())
 	configureHookManagerFromConfig(al.hooks, cfg)
 	al.contextManager = al.resolveContextManager()
+	registerBlackboardPromptContributor(al, registry)
 
 	// Register shared tools to all agents (now that al is created)
 	registerSharedTools(al, cfg, msgBus, registry, provider)
 
 	return al
+}
+
+func registerBlackboardPromptContributor(al *AgentLoop, registry *AgentRegistry) {
+	if al == nil || registry == nil {
+		return
+	}
+	for _, agentID := range registry.ListAgentIDs() {
+		agent, ok := registry.GetAgent(agentID)
+		if !ok || agent == nil || agent.ContextBuilder == nil {
+			continue
+		}
+		if err := agent.ContextBuilder.RegisterPromptContributor(blackboardPromptContributor{
+			scheduler: al.blackboard,
+		}); err != nil {
+			logger.WarnCF("agent", "Failed to register blackboard prompt contributor", map[string]any{
+				"agent_id": agentID,
+				"error":    err.Error(),
+			})
+		}
+	}
 }
 
 func registerSharedTools(

@@ -672,7 +672,7 @@ case "your-provider":
 
 #### 5. 認証サポートの追加（オプション）
 
-プロバイダーが OAuth や特別な認証を必要とする場合、`cmd/picoclaw/internal/auth/helpers.go` にケースを追加します：
+プロバイダーが OAuth や特別な認証を必要とする場合、`cmd/flyflor/internal/auth/helpers.go` にケースを追加します：
 
 ```go
 case "your-provider":
@@ -734,7 +734,7 @@ export PICOCLAW_MODEL_LIST='[{"model_name":"your-model","model":"your-provider/m
   - `pkg/auth/store.go` - 認証情報ストレージ（`~/.picoclaw/auth.json`）
   - `pkg/providers/factory.go` - プロバイダーファクトリーとプロトコルルーティング
   - `pkg/providers/types.go` - プロバイダーインターフェース定義
-  - `cmd/picoclaw/internal/auth/helpers.go` - 認証 CLI コマンド
+  - `cmd/flyflor/internal/auth/helpers.go` - 認証 CLI コマンド
 
 - **ドキュメント：**
   - `docs/ANTIGRAVITY_USAGE.md` - Antigravity 使用ガイド

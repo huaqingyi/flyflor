@@ -186,7 +186,7 @@ ifeq ($(OS),Windows_NT)
 else
 	@mkdir -p "$$(dirname "$(PICOCLAW_BINARY)")"
 endif
-	@$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o "$(PICOCLAW_BINARY)" ../cmd/picoclaw
+	@$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o "$(PICOCLAW_BINARY)" ../cmd/flyflor
 
 # Run all tests
 test:

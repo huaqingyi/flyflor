@@ -27,6 +27,8 @@ build/
 config/config.json
 .security.yml
 onboard
+!cmd/flyflor/internal/onboard/
+!cmd/flyflor/internal/onboard/**
 
 
 # Test

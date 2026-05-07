@@ -37,7 +37,7 @@
   },
   "chat": {
     "welcome": "Flyflor Runtime Cockpit 已就绪",
-    "welcomeDesc": "发送任务后，Flyflor 会保持自然对话清晰可读，在对话中紧凑展示动态思考，并把 Codex / Copilot bridge 黑板按回合隐藏在可打开的 tabs 里。",
+    "welcomeDesc": "发送任务后，Flyflor 会保持自然对话清晰可读，在对话中紧凑展示动态思考，并把 Blackboard + Planner/Reviewer worker 黑板按回合隐藏在可打开的 tabs 里。",
     "placeholder": "把任务交给 Flyflor...",
     "disabledPlaceholder": {
       "gatewayUnknown": "无法对话：网关状态仍在检测中。请稍候重试，如仍无效请刷新页面或重启 Launcher。",
@@ -742,7 +742,7 @@
     "finish": "完成",
     "welcome": {
       "title": "欢迎使用 Flyflor",
-      "description": "Flyflor 是一个多智能体运行时控制台，用黑板、bridge 守护和长期记忆把任务执行过程可视化。让我们花几秒钟完成基础配置。"
+      "description": "Flyflor 是一个多智能体运行时控制台，用黑板调度器、worker 讨论和长期记忆把任务执行过程可视化。让我们花几秒钟完成基础配置。"
     },
     "models": {
       "title": "配置模型",

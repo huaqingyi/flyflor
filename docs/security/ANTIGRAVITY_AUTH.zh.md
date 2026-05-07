@@ -672,7 +672,7 @@ case "your-provider":
 
 #### 5. 添加认证支持（可选）
 
-如果你的提供商需要 OAuth 或特殊认证，在 `cmd/picoclaw/internal/auth/helpers.go` 中添加分支：
+如果你的提供商需要 OAuth 或特殊认证，在 `cmd/flyflor/internal/auth/helpers.go` 中添加分支：
 
 ```go
 case "your-provider":
@@ -734,7 +734,7 @@ export PICOCLAW_MODEL_LIST='[{"model_name":"your-model","model":"your-provider/m
   - `pkg/auth/store.go` - 认证凭据存储（`~/.picoclaw/auth.json`）
   - `pkg/providers/factory.go` - 提供商工厂和协议路由
   - `pkg/providers/types.go` - 提供商接口定义
-  - `cmd/picoclaw/internal/auth/helpers.go` - 认证 CLI 命令
+  - `cmd/flyflor/internal/auth/helpers.go` - 认证 CLI 命令
 
 - **文档：**
   - `docs/ANTIGRAVITY_USAGE.md` - Antigravity 使用指南

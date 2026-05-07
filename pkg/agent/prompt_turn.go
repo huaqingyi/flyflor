@@ -15,6 +15,7 @@ func promptBuildRequestForTurn(
 	media []string,
 ) PromptBuildRequest {
 	return PromptBuildRequest{
+		SessionKey:        ts.sessionKey,
 		History:           history,
 		Summary:           summary,
 		CurrentMessage:    currentMessage,

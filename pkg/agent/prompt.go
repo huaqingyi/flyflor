@@ -54,6 +54,7 @@ const (
 	PromptSourceActiveSkills   PromptSourceID = "skill:active"
 	PromptSourceToolRegistry   PromptSourceID = "tool_registry:native"
 	PromptSourceToolDiscovery  PromptSourceID = "tool_registry:discovery"
+	PromptSourceBlackboard     PromptSourceID = "blackboard:workers"
 	PromptSourceOutputPolicy   PromptSourceID = "runtime.output"
 	PromptSourceSubTurnProfile PromptSourceID = "subturn.profile"
 	PromptSourceUserMessage    PromptSourceID = "turn:user_message"
@@ -101,8 +102,9 @@ type PromptPart struct {
 }
 
 type PromptBuildRequest struct {
-	History []providers.Message
-	Summary string
+	SessionKey string
+	History    []providers.Message
+	Summary    string
 
 	CurrentMessage string
 	Media          []string
@@ -179,6 +181,13 @@ func builtinPromptSources() []PromptSourceDescriptor {
 			Owner:           "tools",
 			Description:     "Native provider tool definitions",
 			Allowed:         []PromptPlacement{{Layer: PromptLayerCapability, Slot: PromptSlotTooling}},
+			StableByDefault: true,
+		},
+		{
+			ID:              PromptSourceBlackboard,
+			Owner:           "blackboard",
+			Description:     "Internal blackboard workbench and default worker roles",
+			Allowed:         []PromptPlacement{{Layer: PromptLayerInstruction, Slot: PromptSlotWorkspace}},
 			StableByDefault: true,
 		},
 		{

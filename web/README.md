@@ -7,8 +7,8 @@ The launcher bundles the frontend, exposes backend APIs, manages local dashboard
 ## Cockpit Surfaces
 
 - Dialogue panel: user-facing conversation and final Flyflor responses on the left.
-- Blackboard panel: always available on the right, grouped by user turn, with Codex Bridge and Copilot Guard turns, memory checkpoints, tool calls, review notes, and consensus.
-- Runtime signals: gateway state, bridge socket state, active session, model, agent graph, memory inspector, and event flow are surfaced without forcing horizontal scrolling.
+- Blackboard panel: always available on the right, grouped by user turn, with Planner and Reviewer worker turns, memory checkpoints, tool calls, review notes, and consensus.
+- Runtime signals: gateway state, blackboard scheduler state, active session, model, agent graph, memory inspector, and event flow are surfaced without forcing horizontal scrolling.
 
 ## Local Development
 

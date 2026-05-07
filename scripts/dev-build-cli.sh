@@ -13,7 +13,7 @@ docker compose -f "$builder_compose" --profile dev up -d flyflor-builder
 
 echo "Building flyflor CLI inside the builder container..."
 docker compose -f "$builder_compose" --profile dev exec -T flyflor-builder sh -c \
-  'export PATH=/usr/local/go/bin:$PATH; go build -tags goolm,stdjson -o /src/build/dev/flyflor ./cmd/picoclaw'
+  'export PATH=/usr/local/go/bin:$PATH; go build -tags goolm,stdjson -o /src/build/dev/flyflor ./cmd/flyflor'
 
 if [ ! -f "$output" ]; then
   echo "Expected $output, but it was not created." >&2

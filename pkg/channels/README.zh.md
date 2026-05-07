@@ -1,6 +1,6 @@
 # PicoClaw Channel System：完整开发指南
 
-> **影响范围**: `pkg/channels/`, `pkg/bus/`, `pkg/media/`, `pkg/identity/`, `cmd/picoclaw/internal/gateway/`
+> **影响范围**: `pkg/channels/`, `pkg/bus/`, `pkg/media/`, `pkg/identity/`, `cmd/flyflor/internal/gateway/`
 
 ---
 
@@ -341,7 +341,7 @@ func init() {
 **3h. 在 Gateway 中导入子包**
 
 ```go
-// cmd/picoclaw/internal/gateway/helpers.go
+// cmd/flyflor/internal/gateway/helpers.go
 import (
     _ "github.com/sipeed/picoclaw/pkg/channels/telegram"   // 触发 init() 注册
     _ "github.com/sipeed/picoclaw/pkg/channels/discord"
@@ -839,7 +839,7 @@ Manager 使用 `InitChannelList()` 来验证类型和解码设置，
 #### 在 Gateway 中添加 blank import
 
 ```go
-// cmd/picoclaw/internal/gateway/helpers.go
+// cmd/flyflor/internal/gateway/helpers.go
 import (
     _ "github.com/sipeed/picoclaw/pkg/channels/matrix"
 )

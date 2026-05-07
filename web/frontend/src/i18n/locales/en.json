@@ -37,7 +37,7 @@
   },
   "chat": {
     "welcome": "Flyflor Runtime Cockpit is ready",
-    "welcomeDesc": "Send a task and Flyflor will keep natural dialogue readable, stream compact reasoning in place, and keep Codex / Copilot bridge blackboard tabs hidden until you open them.",
+    "welcomeDesc": "Send a task and Flyflor will keep natural dialogue readable, stream compact reasoning in place, and keep Blackboard + Planner/Reviewer worker tabs hidden until you open them.",
     "placeholder": "Give Flyflor a task...",
     "disabledPlaceholder": {
       "gatewayUnknown": "Unable to chat: Gateway status is still being checked. Please wait, then refresh the page or restart Launcher if needed.",
@@ -742,7 +742,7 @@
     "finish": "Finish",
     "welcome": {
       "title": "Welcome to Flyflor",
-      "description": "Flyflor is a multi-agent runtime cockpit that makes blackboard discussion, bridge guarding, and long-term memory visible. Let's finish the basic setup."
+      "description": "Flyflor is a multi-agent runtime cockpit that makes blackboard scheduling, worker discussion, and long-term memory visible. Let's finish the basic setup."
     },
     "models": {
       "title": "Configure Models",

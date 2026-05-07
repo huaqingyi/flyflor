@@ -98,7 +98,7 @@ ENV HOME=/root \
 WORKDIR /workspace
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget -q --spider http://localhost:18790/health || exit 1
+  CMD wget -q --spider http://localhost:18800 || exit 1
 
 ENTRYPOINT ["flyflor-entrypoint"]
 CMD ["web", "-console", "-no-browser", "-host", "0.0.0.0", "/config/config.json"]

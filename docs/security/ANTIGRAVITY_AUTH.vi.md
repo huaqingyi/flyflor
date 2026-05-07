@@ -672,7 +672,7 @@ Thêm mục mặc định trong `pkg/config/defaults.go`:
 
 #### 5. Thêm hỗ trợ xác thực (Tùy chọn)
 
-Nếu nhà cung cấp của bạn yêu cầu OAuth hoặc xác thực đặc biệt, thêm case vào `cmd/picoclaw/internal/auth/helpers.go`:
+Nếu nhà cung cấp của bạn yêu cầu OAuth hoặc xác thực đặc biệt, thêm case vào `cmd/flyflor/internal/auth/helpers.go`:
 
 ```go
 case "your-provider":
@@ -734,7 +734,7 @@ export PICOCLAW_MODEL_LIST='[{"model_name":"your-model","model":"your-provider/m
   - `pkg/auth/store.go` - Lưu trữ thông tin xác thực (`~/.picoclaw/auth.json`)
   - `pkg/providers/factory.go` - Factory nhà cung cấp và định tuyến giao thức
   - `pkg/providers/types.go` - Định nghĩa interface nhà cung cấp
-  - `cmd/picoclaw/internal/auth/helpers.go` - Lệnh CLI xác thực
+  - `cmd/flyflor/internal/auth/helpers.go` - Lệnh CLI xác thực
 
 - **Tài liệu:**
   - `docs/ANTIGRAVITY_USAGE.md` - Hướng dẫn sử dụng Antigravity
