@@ -1,0 +1,24 @@
+services:
+  flyflor-builder:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: flyflor:dev-builder
+    container_name: flyflor-builder
+    profiles:
+      - dev
+    working_dir: /src
+    volumes:
+      - .:/src
+      - flyflor-go-mod-cache:/root/go/pkg/mod
+      - flyflor-go-build-cache:/root/.cache/go-build
+      - flyflor-pnpm-store:/root/.local/share/pnpm/store
+    environment:
+      GOTOOLCHAIN: local
+      GOPROXY: https://goproxy.cn,direct
+      CGO_ENABLED: "0"
+
+volumes:
+  flyflor-go-mod-cache:
+  flyflor-go-build-cache:
+  flyflor-pnpm-store:

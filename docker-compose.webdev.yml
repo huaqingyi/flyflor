@@ -1,0 +1,4 @@
+services:
+  flyflor:
+    environment:
+      FLYFLOR_WEB_DIST_DIR: /source/web/backend/dist

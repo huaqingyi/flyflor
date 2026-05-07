@@ -1,0 +1,26 @@
+FROM node:24-bookworm-slim
+
+ARG TARGETARCH
+ARG GO_VERSION=1.25.9
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates curl git make && \
+    rm -rf /var/lib/apt/lists/* && \
+    case "${TARGETARCH:-amd64}" in \
+      amd64) go_arch=amd64 ;; \
+      arm64) go_arch=arm64 ;; \
+      *) echo "unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac && \
+    curl -fsSL "https://dl.google.com/go/go${GO_VERSION}.linux-${go_arch}.tar.gz" | tar -C /usr/local -xz && \
+    corepack enable
+
+ENV PATH=/usr/local/go/bin:$PATH \
+    GOTOOLCHAIN=local \
+    GOPROXY=https://goproxy.cn,direct \
+    CGO_ENABLED=0 \
+    GOCACHE=/root/.cache/go-build \
+    GOMODCACHE=/root/go/pkg/mod
+
+WORKDIR /src
+
+CMD ["sleep", "infinity"]
