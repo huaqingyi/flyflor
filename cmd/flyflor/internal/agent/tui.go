@@ -1383,21 +1383,14 @@ func (m agentTUIModel) appendThinkingBlock(lines []string, turn cliui.Blackboard
 	if index <= 0 {
 		index = len(m.turns) + 1
 	}
-	expanded := m.expandedTurns != nil && m.expandedTurns[index]
-	marker := ">"
-	if expanded {
-		marker = "v"
-	}
-	label := fmt.Sprintf("%s %s %s 思考过程", m.thinkingIcon(live), m.thinkingMood(live), marker)
+	label := fmt.Sprintf("%s %s 思考过程", m.thinkingIcon(live), m.thinkingMood(live))
 	summary := m.thinkingCollapsedSummary(turn, live)
 	lines = appendChatBlock(lines, label, summary, width, false, tuiCyan, tuiSurface)
-	if expanded {
-		detail := "完整黑板: /bb " + strconv.Itoa(index)
-		if live {
-			detail = "完整黑板: /bb latest"
-		}
-		lines = appendChatBlock(lines, "", detail+"\n"+m.inlineThinkingDetail(turn, live, maxLocal(width-10, 24)), width, true, tuiCyan, tuiSurface)
+	detail := "完整黑板: /bb " + strconv.Itoa(index)
+	if live {
+		detail = "完整黑板: /bb latest"
 	}
+	lines = appendChatBlock(lines, "", detail+"\n"+m.inlineThinkingDetail(turn, live, maxLocal(width-10, 24)), width, true, tuiCyan, tuiSurface)
 	return lines
 }
 
@@ -2386,12 +2379,11 @@ func (m agentTUIModel) filteredCommands() []slashCommand {
 func (m *agentTUIModel) applyThinkingCommand(args []string) {
 	count := m.blackboardTurnCount()
 	if len(args) > 0 && (args[0] == "hide" || args[0] == "off") {
-		m.expandedTurns = map[int]bool{}
-		m.status = "对话流思考过程已全部折叠"
+		m.status = "聊天内容不会折叠；思考过程始终完整显示"
 		return
 	}
 	if count == 0 {
-		m.status = "暂无可展开的思考过程"
+		m.status = "暂无可显示的思考过程"
 		return
 	}
 	selected := count
@@ -2406,15 +2398,7 @@ func (m *agentTUIModel) applyThinkingCommand(args []string) {
 	if selected > count {
 		selected = count
 	}
-	if m.expandedTurns == nil {
-		m.expandedTurns = map[int]bool{}
-	}
-	m.expandedTurns[selected] = !m.expandedTurns[selected]
-	if m.expandedTurns[selected] {
-		m.status = fmt.Sprintf("已展开第 %d 轮思考过程", selected)
-	} else {
-		m.status = fmt.Sprintf("已折叠第 %d 轮思考过程", selected)
-	}
+	m.status = fmt.Sprintf("第 %d 轮思考过程已完整显示；可用 /bb %d 查看黑板", selected, selected)
 }
 
 func (m *agentTUIModel) toggleLatestThinking() {
@@ -2969,11 +2953,7 @@ func (m agentTUIModel) thinkingCollapsedSummary(turn cliui.BlackboardTurn, live 
 	if live {
 		return fmt.Sprintf("%s · 摘要: %s · 用时 %s · /bb latest 查看黑板", m.dynamicThinkingStatus(), m.latestDiscussionSummary(), m.thinkingElapsed())
 	}
-	state := "已折叠"
-	if m.expandedTurns != nil && m.expandedTurns[index] {
-		state = "已展开"
-	}
-	return fmt.Sprintf("%s · /think %d 展开/收拢 · /bb %d 查看黑板", state, index, index)
+	return fmt.Sprintf("完整显示 · /bb %d 查看黑板", index)
 }
 
 func (m agentTUIModel) dynamicThinkingSummary() string {

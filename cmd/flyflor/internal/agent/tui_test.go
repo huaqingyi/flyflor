@@ -106,19 +106,25 @@ func TestAgentTUIViewShowsTranscriptWithMarkdownAnswer(t *testing.T) {
 	}
 
 	view := stripANSIForTest(m.View())
-	for _, want := range []string{"实时对话 · 固定布局", "黑板为什么看不懂？", "😁 完成 > 思考过程", "摘要", "按轮次分组", "可读黑板"} {
+	for _, want := range []string{"实时对话 · 固定布局", "黑板为什么看不懂？", "😁 完成 思考过程"} {
 		if !strings.Contains(view, want) {
 			t.Fatalf("chat transcript missing %q:\n%s", want, view)
+		}
+	}
+	allRows := stripANSIForTest(strings.Join(m.chatRenderableRows(108), "\n"))
+	for _, want := range []string{"Flyflor Planner", "摘要", "按轮次分组", "可读黑板"} {
+		if !strings.Contains(allRows, want) {
+			t.Fatalf("complete chat history missing %q:\n%s", want, allRows)
 		}
 	}
 	if strings.Contains(view, "| 我：") || strings.Contains(view, "| 回答：") {
 		t.Fatalf("chat transcript should use color blocks, not pipe prefixes:\n%s", view)
 	}
-	if strings.Contains(view, "**按轮次分组**") {
-		t.Fatalf("assistant markdown should be rendered, not shown raw:\n%s", view)
+	if strings.Contains(allRows, "**按轮次分组**") {
+		t.Fatalf("assistant markdown should be rendered, not shown raw:\n%s", allRows)
 	}
-	if strings.Contains(view, "Flyflor Planner") {
-		t.Fatalf("chat transcript should keep thinking collapsed by default:\n%s", view)
+	if strings.Contains(allRows, "已折叠") || strings.Contains(allRows, "展开/收拢") {
+		t.Fatalf("chat transcript must not fold thinking or conversation content:\n%s", allRows)
 	}
 }
 
@@ -152,6 +158,17 @@ func TestAgentTUIChatKeepsHeaderFixedAndScrollsInsideTUI(t *testing.T) {
 	if strings.Contains(view, "**段落") {
 		t.Fatalf("assistant markdown should be rendered, not raw markdown:\n%s", view)
 	}
+	scrolledTop := m
+	scrolledTop.scrollChat(-999)
+	topView := stripANSIForTest(scrolledTop.View())
+	if !strings.Contains(topView, "给我一个很长的 Markdown 回答") || !strings.Contains(topView, "😁 完成 思考过程") {
+		t.Fatalf("chat should scroll to the beginning of full history:\n%s", topView)
+	}
+	scrolledTop.scrollChat(999)
+	bottomView := stripANSIForTest(scrolledTop.View())
+	if !strings.Contains(bottomView, "段落 28") {
+		t.Fatalf("chat should scroll back to the end of full history:\n%s", bottomView)
+	}
 }
 
 func TestAgentTUIThinkCommandExpandsInlineDetails(t *testing.T) {
@@ -168,14 +185,14 @@ func TestAgentTUIThinkCommandExpandsInlineDetails(t *testing.T) {
 
 	next, _ := m.handleSlashCommand("/think 1")
 	expanded := next.(agentTUIModel)
-	if !expanded.expandedTurns[1] {
-		t.Fatal("/think 1 should mark the turn as expanded for compatibility")
-	}
 	view := stripANSIForTest(expanded.View())
-	for _, want := range []string{"解释三层记忆", "😁 完成 v 思考过程", "Flyflor Planner", "/bb 1"} {
+	for _, want := range []string{"解释三层记忆", "😁 完成 思考过程", "Flyflor Planner", "/bb 1"} {
 		if !strings.Contains(view, want) {
 			t.Fatalf("expanded thinking missing %q:\n%s", want, view)
 		}
+	}
+	if strings.Contains(view, "已折叠") || strings.Contains(view, "展开/收拢") {
+		t.Fatalf("/think should not fold or hide content:\n%s", view)
 	}
 }
 
@@ -194,7 +211,7 @@ func TestAgentTUIShowsLiveThinkingSummaryAndElapsed(t *testing.T) {
 	}
 
 	view := stripANSIForTest(m.View())
-	for _, want := range []string{"解释为什么 TUI 卡顿", "😅 攻坚 > 思考过程", "摘要: 召回记忆", "用时 3s", "/bb latest"} {
+	for _, want := range []string{"解释为什么 TUI 卡顿", "😅 攻坚 思考过程", "摘要: 召回记忆", "用时 3s", "/bb latest"} {
 		if !strings.Contains(view, want) {
 			t.Fatalf("live thinking view missing %q:\n%s", want, view)
 		}
