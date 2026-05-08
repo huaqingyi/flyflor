@@ -1,52 +1,55 @@
-x-flyflor-dev: &flyflor-dev
+x-common-config: &common-config
   build:
     context: .
-    target: dev
-  image: flyflor-dev:local
-  working_dir: /workspace/flyflor
-  environment:
-    CARGO_HOME: /usr/local/cargo
-    CARGO_TARGET_DIR: /workspace/flyflor/target
-    CARGO_BUILD_JOBS: "1"
-    PATH: /usr/local/cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-    RUST_LOG: ${RUST_LOG:-info}
+    dockerfile: Dockerfile
   volumes:
-    - .:/workspace/flyflor:cached
-    - ./docker/cargo/registry:/usr/local/cargo/registry
-    - ./docker/cargo/git:/usr/local/cargo/git
-    - ./docker/target:/workspace/flyflor/target
-    - ./docker/flyflor:/root/.flyflor
-    - ./docker/bridge/node_modules:/workspace/flyflor/bridge/node_modules
-  ports:
-    - "${FLYFLOR_WEBUI_PORT:-18890}:18890"
-    - "${FLYFLOR_GATEWAY_PORT:-18790}:18790"
-    - "${FLYFLOR_BRIDGE_PORT:-3001}:3001"
-  tty: true
-  stdin_open: true
+    - ~/.nanobot:/home/nanobot/.nanobot
+  cap_drop:
+    - ALL
+  cap_add:
+    - SYS_ADMIN
+  security_opt:
+    - apparmor=unconfined
+    - seccomp=unconfined
 
 services:
-  dev:
-    <<: *flyflor-dev
-    command: >
-      bash -c "cargo fetch &&
-      cargo build &&
-      ln -sf /workspace/flyflor/target/debug/flyflor /usr/local/bin/flyflor &&
-      echo 'Flyflor dev container is ready.';
-      echo 'Use: docker compose exec dev bash';
-      sleep infinity"
+  nanobot-gateway:
+    container_name: nanobot-gateway
+    <<: *common-config
+    command: ["gateway"]
+    restart: unless-stopped
+    ports:
+      - 18790:18790
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
 
-  webui:
-    <<: *flyflor-dev
-    profiles: ["webui"]
-    command: bash -c "cargo run -- webui --host 0.0.0.0 --port 18890"
+  nanobot-api:
+    container_name: nanobot-api
+    <<: *common-config
+    command:
+      ["serve", "--host", "0.0.0.0", "-w", "/home/nanobot/.nanobot/api-workspace"]
+    restart: unless-stopped
+    ports:
+      - 127.0.0.1:8900:8900
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
 
-  gateway:
-    <<: *flyflor-dev
-    profiles: ["gateway"]
-    command: bash -c "cargo run -- gateway --port 18790"
-
-  bridge:
-    <<: *flyflor-dev
-    profiles: ["bridge"]
-    working_dir: /workspace/flyflor/bridge
-    command: bash -c "npm install && npm run dev"
+  nanobot-cli:
+    <<: *common-config
+    profiles:
+      - cli
+    command: ["status"]
+    stdin_open: true
+    tty: true

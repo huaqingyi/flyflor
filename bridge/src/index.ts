@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * flyflor WhatsApp Bridge
+ * nanobot WhatsApp Bridge
  * 
- * This bridge connects WhatsApp Web to the Flyflor runtime
+ * This bridge connects WhatsApp Web to nanobot's Python backend
  * via WebSocket. It handles authentication, message forwarding,
  * and reconnection logic.
  * 
@@ -10,7 +10,7 @@
  *   npm run build && npm start
  *   
  * Or with custom settings:
- *   BRIDGE_PORT=3001 BRIDGE_HOST=127.0.0.1 AUTH_DIR=~/.flyflor/whatsapp BRIDGE_TOKEN=your-token npm start
+ *   BRIDGE_PORT=3001 AUTH_DIR=~/.nanobot/whatsapp npm start
  */
 
 // Polyfill crypto for Baileys in ESM
@@ -24,14 +24,18 @@ import { homedir } from 'os';
 import { join } from 'path';
 
 const PORT = parseInt(process.env.BRIDGE_PORT || '3001', 10);
-const HOST = process.env.BRIDGE_HOST || '127.0.0.1';
-const AUTH_DIR = process.env.AUTH_DIR || join(homedir(), '.flyflor', 'whatsapp-auth');
-const BRIDGE_TOKEN = process.env.BRIDGE_TOKEN || '';
+const AUTH_DIR = process.env.AUTH_DIR || join(homedir(), '.nanobot', 'whatsapp-auth');
+const TOKEN = process.env.BRIDGE_TOKEN?.trim();
 
-console.log('✿ flyflor WhatsApp Bridge');
+if (!TOKEN) {
+  console.error('BRIDGE_TOKEN is required. Start the bridge via nanobot so it can provision a local secret automatically.');
+  process.exit(1);
+}
+
+console.log('🐈 nanobot WhatsApp Bridge');
 console.log('========================\n');
 
-const server = new BridgeServer(PORT, AUTH_DIR, HOST, BRIDGE_TOKEN);
+const server = new BridgeServer(PORT, AUTH_DIR, TOKEN);
 
 // Handle graceful shutdown
 process.on('SIGINT', async () => {

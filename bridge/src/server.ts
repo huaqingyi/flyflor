@@ -1,5 +1,6 @@
 /**
- * WebSocket server for Flyflor-Node.js bridge communication.
+ * WebSocket server for Python-Node.js bridge communication.
+ * Security: binds to 127.0.0.1 only; requires BRIDGE_TOKEN auth; rejects browser Origin headers.
  */
 
 import { WebSocketServer, WebSocket } from 'ws';
@@ -11,10 +12,16 @@ interface SendCommand {
   text: string;
 }
 
-interface AuthCommand {
-  type: 'auth';
-  token: string;
+interface SendMediaCommand {
+  type: 'send_media';
+  to: string;
+  filePath: string;
+  mimetype: string;
+  caption?: string;
+  fileName?: string;
 }
+
+type BridgeCommand = SendCommand | SendMediaCommand;
 
 interface BridgeMessage {
   type: 'message' | 'status' | 'qr' | 'error';
@@ -25,25 +32,30 @@ export class BridgeServer {
   private wss: WebSocketServer | null = null;
   private wa: WhatsAppClient | null = null;
   private clients: Set<WebSocket> = new Set();
-  private authenticatedClients: WeakSet<WebSocket> = new WeakSet();
-  private requireAuth: boolean;
 
-  constructor(
-    private port: number,
-    private authDir: string,
-    private host: string,
-    private bridgeToken: string,
-  ) {
-    this.requireAuth = this.bridgeToken.length > 0;
-  }
+  constructor(private port: number, private authDir: string, private token: string) {}
 
   async start(): Promise<void> {
-    // Create WebSocket server
-    this.wss = new WebSocketServer({ port: this.port, host: this.host });
-    console.log(`🌉 Bridge server listening on ws://${this.host}:${this.port}`);
-    if (this.requireAuth) {
-      console.log('🔐 Bridge token auth is enabled');
+    if (!this.token.trim()) {
+      throw new Error('BRIDGE_TOKEN is required');
     }
+
+    // Bind to localhost only — never expose to external network
+    this.wss = new WebSocketServer({
+      host: '127.0.0.1',
+      port: this.port,
+      verifyClient: (info, done) => {
+        const origin = info.origin || info.req.headers.origin;
+        if (origin) {
+          console.warn(`Rejected WebSocket connection with Origin header: ${origin}`);
+          done(false, 403, 'Browser-originated WebSocket connections are not allowed');
+          return;
+        }
+        done(true);
+      },
+    });
+    console.log(`🌉 Bridge server listening on ws://127.0.0.1:${this.port}`);
+    console.log('🔒 Token authentication enabled');
 
     // Initialize WhatsApp client
     this.wa = new WhatsAppClient({
@@ -55,45 +67,21 @@ export class BridgeServer {
 
     // Handle WebSocket connections
     this.wss.on('connection', (ws) => {
-      console.log('🔗 Flyflor client connected');
-      this.clients.add(ws);
-
-      ws.on('message', async (data) => {
+      // Require auth handshake as first message
+      const timeout = setTimeout(() => ws.close(4001, 'Auth timeout'), 5000);
+      ws.once('message', (data) => {
+        clearTimeout(timeout);
         try {
-          const cmd = JSON.parse(data.toString()) as SendCommand | AuthCommand;
-          if (cmd.type === 'auth') {
-            const token = typeof cmd.token === 'string' ? cmd.token : '';
-            if (!this.requireAuth || token === this.bridgeToken) {
-              this.authenticatedClients.add(ws);
-              ws.send(JSON.stringify({ type: 'status', status: 'authenticated' }));
-            } else {
-              ws.send(JSON.stringify({ type: 'error', error: 'invalid auth token' }));
-              ws.close();
-            }
-            return;
+          const msg = JSON.parse(data.toString());
+          if (msg.type === 'auth' && msg.token === this.token) {
+            console.log('🔗 Python client authenticated');
+            this.setupClient(ws);
+          } else {
+            ws.close(4003, 'Invalid token');
           }
-
-          if (this.requireAuth && !this.authenticatedClients.has(ws)) {
-            ws.send(JSON.stringify({ type: 'error', error: 'authentication required' }));
-            return;
-          }
-
-          await this.handleCommand(cmd);
-          ws.send(JSON.stringify({ type: 'sent', to: cmd.to }));
-        } catch (error) {
-          console.error('Error handling command:', error);
-          ws.send(JSON.stringify({ type: 'error', error: String(error) }));
+        } catch {
+          ws.close(4003, 'Invalid auth message');
         }
-      });
-
-      ws.on('close', () => {
-        console.log('🔌 Flyflor client disconnected');
-        this.clients.delete(ws);
-      });
-
-      ws.on('error', (error) => {
-        console.error('WebSocket error:', error);
-        this.clients.delete(ws);
       });
     });
 
@@ -101,12 +89,38 @@ export class BridgeServer {
     await this.wa.connect();
   }
 
-  private async handleCommand(cmd: SendCommand | AuthCommand): Promise<void> {
-    if (cmd.type === 'auth') {
-      return;
-    }
-    if (cmd.type === 'send' && this.wa) {
+  private setupClient(ws: WebSocket): void {
+    this.clients.add(ws);
+
+    ws.on('message', async (data) => {
+      try {
+        const cmd = JSON.parse(data.toString()) as BridgeCommand;
+        await this.handleCommand(cmd);
+        ws.send(JSON.stringify({ type: 'sent', to: cmd.to }));
+      } catch (error) {
+        console.error('Error handling command:', error);
+        ws.send(JSON.stringify({ type: 'error', error: String(error) }));
+      }
+    });
+
+    ws.on('close', () => {
+      console.log('🔌 Python client disconnected');
+      this.clients.delete(ws);
+    });
+
+    ws.on('error', (error) => {
+      console.error('WebSocket error:', error);
+      this.clients.delete(ws);
+    });
+  }
+
+  private async handleCommand(cmd: BridgeCommand): Promise<void> {
+    if (!this.wa) return;
+
+    if (cmd.type === 'send') {
       await this.wa.sendMessage(cmd.to, cmd.text);
+    } else if (cmd.type === 'send_media') {
+      await this.wa.sendMedia(cmd.to, cmd.filePath, cmd.mimetype, cmd.caption, cmd.fileName);
     }
   }
 

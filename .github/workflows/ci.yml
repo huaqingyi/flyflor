@@ -1,34 +1,39 @@
-name: CI
+name: Test Suite
 
 on:
   push:
-    branches: ["main"]
+    branches: [ main, nightly ]
   pull_request:
-    branches: ["main"]
+    branches: [ main, nightly ]
 
 jobs:
   test:
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
 
-      - name: Cache Cargo
-        uses: Swatinem/rust-cache@v2
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
 
-      - name: Format Check
-        run: cargo fmt --all -- --check
+    - name: Install system dependencies (Linux)
+      if: runner.os == 'Linux'
+      run: sudo apt-get update && sudo apt-get install -y libolm-dev build-essential
 
-      - name: Run Tests
-        run: cargo test
+    - name: Install dependencies
+      run: uv sync --all-extras
 
-      - name: Check Feishu WebSocket Feature
-        run: cargo check --features feishu-websocket
+    - name: Lint with ruff
+      run: uv run ruff check nanobot --select F
+
+    - name: Run tests
+      run: uv run pytest tests/

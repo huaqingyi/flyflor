@@ -1,604 +1,319 @@
-# flyflor
+![cover-v5-optimized](./images/GitHub_README.png)
 
-English: [README.en.md](README.en.md)
+<div align="center">
+  <p>
+    <a href="https://pypi.org/project/nanobot-ai/"><img src="https://img.shields.io/pypi/v/nanobot-ai" alt="PyPI"></a>
+    <a href="https://pepy.tech/project/nanobot-ai"><img src="https://static.pepy.tech/badge/nanobot-ai" alt="Downloads"></a>
+    <img src="https://img.shields.io/badge/python-≥3.11-blue" alt="Python">
+    <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
+    <a href="https://github.com/HKUDS/nanobot/graphs/commit-activity" target="_blank">
+        <img alt="Commits last month" src="https://img.shields.io/github/commit-activity/m/HKUDS/nanobot?labelColor=%20%2332b583&color=%20%2312b76a"></a>
+    <a href="https://github.com/HKUDS/nanobot/issues?q=is%3Aissue%20is%3Aclosed" target="_blank">
+        <img alt="Issues closed" src="https://img.shields.io/github/issues-search?query=repo%3AHKUDS%2Fnanobot%20is%3Aissue%20is%3Aclosed&label=issues%20closed&labelColor=%20%237d89b0&color=%20%235d6b98"></a>
+    <a href="https://twitter.com/intent/follow?screen_name=nanobot_project" target="_blank">
+        <img src="https://img.shields.io/twitter/follow/nanobot_project?logo=X&color=%20%23f5f5f5" alt="follow on X(Twitter)"></a>
+    <a href="https://nanobot.wiki/docs/latest/getting-started/nanobot-overview"><img src="https://img.shields.io/badge/Docs-nanobot.wiki-blue?style=flat&logo=readthedocs&logoColor=white" alt="Docs"></a>
+    <a href="./COMMUNICATION.md"><img src="https://img.shields.io/badge/Feishu-Group-E9DBFC?style=flat&logo=feishu&logoColor=white" alt="Feishu"></a>
+    <a href="./COMMUNICATION.md"><img src="https://img.shields.io/badge/WeChat-Group-C5EAB4?style=flat&logo=wechat&logoColor=white" alt="WeChat"></a>
+    <a href="https://discord.gg/MnCvHqpUGB"><img src="https://img.shields.io/badge/Discord-Community-5865F2?style=flat&logo=discord&logoColor=white" alt="Discord"></a>
+  </p>
+</div>
 
-## Flyflor（飞花）智能体运行时
+🐈 **nanobot** is an open-source and ultra-lightweight AI agent in the spirit of [OpenClaw](https://github.com/openclaw/openclaw), [Claude Code](https://www.anthropic.com/claude-code), and [Codex](https://www.openai.com/codex/). It keeps the core agent loop small and readable while still supporting chat channels, memory, MCP and practical deployment paths, so you can go from local setup to a long-running personal agent with minimal overhead.
 
-`flyflor` 是面向个人与多渠道工作流的可观察智能体运行时。它以工具调用、会话记忆、定时任务和渠道网关为主干，目标是让飞花在聊天、自动化和长期上下文中保持一致、可维护、可扩展。
+## 📢 News
 
-- Rust 实现：稳定的并发执行、清晰的部署路径和工程化体验
-- 智能体身份：Flyflor / 飞花，冷静、精确、直接，具备长期记忆与工具协作能力
-- 运行时定位：可观察的 Agent loop，而不是单纯聊天客户端
-- 扩展方向：反思、三层记忆、黑板协作、复杂度路由和多渠道网关
+- **2026-04-29** 🚀 Released **v0.1.5.post3** — Smarter threads on Feishu, Discord, Slack, and Teams; **DeepSeek-V4**; Hugging Face & Olostep; choices, `/history`, and steadier long chats. Please see [release notes](https://github.com/HKUDS/nanobot/releases/tag/v0.1.5.post3) for details.
+- **2026-04-28** 🌐 Olostep web search, Hugging Face provider, safer workspace-tool interruptions.
+- **2026-04-27** 💬 `/history` command, smarter session replay caps, smoother Discord / Slack threads.
+- **2026-04-26** 🧭 Natural cron reminders, thread-aware restarts, safer local provider and shell behavior.
+- **2026-04-25** 🧩 `ask_user` choices, macOS LaunchAgent deployment, MSTeams stale-reference cleanup.
+- **2026-04-24** 🎥 Video attachments for channels, DeepSeek thinking control, faster document startup.
+- **2026-04-23** 🧵 Discord thread sessions, Telegram inline buttons, structured tool progress updates.
+- **2026-04-22** 🔎 GitHub Copilot GPT-5 / o-series support, configurable web fetch, WebUI image uploads.
+- **2026-04-21** 🚀 Released **v0.1.5.post2** — Windows & Python 3.14 support, Office document reading, SSE streaming for the OpenAI-compatible API, and stronger reliability across sessions, memory, and channels. Please see [release notes](https://github.com/HKUDS/nanobot/releases/tag/v0.1.5.post2) for details.
+- **2026-04-20** 🎨 Kimi K2.6 support, Telegram long-message split, WebUI typography & dark-mode polish.
+- **2026-04-19** 🌐 WebUI i18n locale switcher, atomic session writes with auto-repair.
+- **2026-04-18** 🧪 Initial WebUI chat, smarter setup wizard menus, WebSocket multi-chat multiplexing.
+- **2026-04-17** 🪟 Windows & Python 3.14 CI, Dream line-age memory, email self-loop guard.
+- **2026-04-16** 📡 SSE streaming for OpenAI-compatible API, Discord channel allow-list.
+- **2026-04-15** 🎛️ LM Studio & nullable API keys, MiniMax thinking endpoint, runtime SelfTool.
+- **2026-04-14** 🚀 Released **v0.1.5.post1** — Dream skill discovery, mid-turn follow-up injection, WebSocket channel, and deeper channel integrations. Please see [release notes](https://github.com/HKUDS/nanobot/releases/tag/v0.1.5.post1) for details.
+- **2026-04-13** 🛡️ Agent turn hardened — user messages persisted early, auto-compact skips active tasks.
+- **2026-04-12** 🔒 Lark global domain support, Dream learns discovered skills, shell sandbox tightened.
+- **2026-04-11** ⚡ Context compact shrinks sessions on the fly; Kagi web search; QQ & WeCom full media.
 
-## 架构方向
+<details>
+<summary>Earlier news</summary>
 
-设计细节见 [DESIGN.md](DESIGN.md)。当前 Rust 实现保留轻量核心，并逐步对齐 Flyflor 设计中的记忆、反思、黑板协作和运行时观测能力。
+- **2026-04-10** 📓 Notebook editing tool, multiple MCP servers, Feishu streaming & done-emoji.
+- **2026-04-09** 🔌 WebSocket channel, unified cross-channel session, `disabled_skills` config.
+- **2026-04-08** 📤 API file uploads, OpenAI reasoning auto-routing with Responses fallback.
+- **2026-04-07** 🧠 Anthropic adaptive thinking, MCP resources & prompts exposed as tools.
+- **2026-04-06** 🛰️ Langfuse observability, unified Whisper transcription, email attachments.
+- **2026-04-05** 🚀 Released **v0.1.5** — sturdier long-running tasks, Dream two-stage memory, production-ready sandboxing and programming Agent SDK. Please see [release notes](https://github.com/HKUDS/nanobot/releases/tag/v0.1.5) for details.
+- **2026-04-04** 🚀 Jinja2 response templates, Dream memory hardened, smarter retry handling.
+- **2026-04-03** 🧠 Xiaomi MiMo provider, chain-of-thought reasoning visible, Telegram UX polish.
+- **2026-04-02** 🧱 Long-running tasks run more reliably — core runtime hardening.
+- **2026-04-01** 🔑 GitHub Copilot auth restored; stricter workspace paths; OpenRouter Claude caching fix.
+- **2026-03-31** 🛰️ WeChat multimodal alignment, Discord/Matrix polish, Python SDK facade, MCP and tool fixes.
+- **2026-03-30** 🧩 OpenAI-compatible API tightened; composable agent lifecycle hooks.
+- **2026-03-29** 💬 WeChat voice, typing, QR/media resilience; fixed-session OpenAI-compatible API.
+- **2026-03-28** 📚 Provider docs refresh; skill template wording fix.
+- **2026-03-27** 🚀 Released **v0.1.4.post6** — architecture decoupling, litellm removal, end-to-end streaming, WeChat channel, and a security fix. Please see [release notes](https://github.com/HKUDS/nanobot/releases/tag/v0.1.4.post6) for details.
+- **2026-03-26** 🏗️ Agent runner extracted and lifecycle hooks unified; stream delta coalescing at boundaries.
+- **2026-03-25** 🌏 StepFun provider, configurable timezone, Gemini thought signatures.
+- **2026-03-24** 🔧 WeChat compatibility, Feishu CardKit streaming, test suite restructured.
+- **2026-03-23** 🔧 Command routing refactored for plugins, WhatsApp/WeChat media, unified channel login CLI.
+- **2026-03-22** ⚡ End-to-end streaming, WeChat channel, Anthropic cache optimization, `/status` command.
+- **2026-03-21** 🔒 Replace `litellm` with native `openai` + `anthropic` SDKs. Please see [commit](https://github.com/HKUDS/nanobot/commit/3dfdab7).
+- **2026-03-20** 🧙 Interactive setup wizard — pick your provider, model autocomplete, and you're good to go.
+- **2026-03-19** 💬 Telegram gets more resilient under load; Feishu now renders code blocks properly.
+- **2026-03-18** 📷 Telegram can now send media via URL. Cron schedules show human-readable details.
+- **2026-03-17** ✨ Feishu formatting glow-up, Slack reacts when done, custom endpoints support extra headers, and image handling is more reliable.
+- **2026-03-16** 🚀 Released **v0.1.4.post5** — a refinement-focused release with stronger reliability and channel support, and a more dependable day-to-day experience. Please see [release notes](https://github.com/HKUDS/nanobot/releases/tag/v0.1.4.post5) for details.
+- **2026-03-15** 🧩 DingTalk rich media, smarter built-in skills, and cleaner model compatibility.
+- **2026-03-14** 💬 Channel plugins, Feishu replies, and steadier MCP, QQ, and media handling.
+- **2026-03-13** 🌐 Multi-provider web search, LangSmith, and broader reliability improvements.
+- **2026-03-12** 🚀 VolcEngine support, Telegram reply context, `/restart`, and sturdier memory.
+- **2026-03-11** 🔌 WeCom, Ollama, cleaner discovery, and safer tool behavior.
+- **2026-03-10** 🧠 Token-based memory, shared retries, and cleaner gateway and Telegram behavior.
+- **2026-03-09** 💬 Slack thread polish and better Feishu audio compatibility.
+- **2026-03-08** 🚀 Released **v0.1.4.post4** — a reliability-packed release with safer defaults, better multi-instance support, sturdier MCP, and major channel and provider improvements. Please see [release notes](https://github.com/HKUDS/nanobot/releases/tag/v0.1.4.post4) for details.
+- **2026-03-07** 🚀 Azure OpenAI provider, WhatsApp media, QQ group chats, and more Telegram/Feishu polish.
+- **2026-03-06** 🪄 Lighter providers, smarter media handling, and sturdier memory and CLI compatibility.
+- **2026-03-05** ⚡️ Telegram draft streaming, MCP SSE support, and broader channel reliability fixes.
+- **2026-03-04** 🛠️ Dependency cleanup, safer file reads, and another round of test and Cron fixes.
+- **2026-03-03** 🧠 Cleaner user-message merging, safer multimodal saves, and stronger Cron guards.
+- **2026-03-02** 🛡️ Safer default access control, sturdier Cron reloads, and cleaner Matrix media handling.
+- **2026-03-01** 🌐 Web proxy support, smarter Cron reminders, and Feishu rich-text parsing improvements.
+- **2026-02-28** 🚀 Released **v0.1.4.post3** — cleaner context, hardened session history, and smarter agent. Please see [release notes](https://github.com/HKUDS/nanobot/releases/tag/v0.1.4.post3) for details.
+- **2026-02-27** 🧠 Experimental thinking mode support, DingTalk media messages, Feishu and QQ channel fixes.
+- **2026-02-26** 🛡️ Session poisoning fix, WhatsApp dedup, Windows path guard, Mistral compatibility.
+- **2026-02-25** 🧹 New Matrix channel, cleaner session context, auto workspace template sync.
+- **2026-02-24** 🚀 Released **v0.1.4.post2** — a reliability-focused release with a redesigned heartbeat, prompt cache optimization, and hardened provider & channel stability. See [release notes](https://github.com/HKUDS/nanobot/releases/tag/v0.1.4.post2) for details.
+- **2026-02-23** 🔧 Virtual tool-call heartbeat, prompt cache optimization, Slack mrkdwn fixes.
+- **2026-02-22** 🛡️ Slack thread isolation, Discord typing fix, agent reliability improvements.
+- **2026-02-21** 🎉 Released **v0.1.4.post1** — new providers, media support across channels, and major stability improvements. See [release notes](https://github.com/HKUDS/nanobot/releases/tag/v0.1.4.post1) for details.
+- **2026-02-20** 🐦 Feishu now receives multimodal files from users. More reliable memory under the hood.
+- **2026-02-19** ✨ Slack now sends files, Discord splits long messages, and subagents work in CLI mode.
+- **2026-02-18** ⚡️ nanobot now supports VolcEngine, MCP custom auth headers, and Anthropic prompt caching.
+- **2026-02-17** 🎉 Released **v0.1.4** — MCP support, progress streaming, new providers, and multiple channel improvements. Please see [release notes](https://github.com/HKUDS/nanobot/releases/tag/v0.1.4) for details.
+- **2026-02-16** 🦞 nanobot now integrates a [ClawHub](https://clawhub.ai) skill — search and install public agent skills.
+- **2026-02-15** 🔑 nanobot now supports OpenAI Codex provider with OAuth login support.
+- **2026-02-14** 🔌 nanobot now supports MCP! See [MCP section](#mcp-model-context-protocol) for details.
+- **2026-02-13** 🎉 Released **v0.1.3.post7** — includes security hardening and multiple improvements. **Please upgrade to the latest version to address security issues**. See [release notes](https://github.com/HKUDS/nanobot/releases/tag/v0.1.3.post7) for more details.
+- **2026-02-12** 🧠 Redesigned memory system — Less code, more reliable. Join the [discussion](https://github.com/HKUDS/nanobot/discussions/566) about it!
+- **2026-02-11** ✨ Enhanced CLI experience and added MiniMax support!
+- **2026-02-10** 🎉 Released **v0.1.3.post6** with improvements! Check the updates [notes](https://github.com/HKUDS/nanobot/releases/tag/v0.1.3.post6) and our [roadmap](https://github.com/HKUDS/nanobot/discussions/431).
+- **2026-02-09** 💬 Added Slack, Email, and QQ support — nanobot now supports multiple chat platforms!
+- **2026-02-08** 🔧 Refactored Providers—adding a new LLM provider now takes just 2 simple steps! Check [here](#providers).
+- **2026-02-07** 🚀 Released **v0.1.3.post5** with Qwen support & several key improvements! Check [here](https://github.com/HKUDS/nanobot/releases/tag/v0.1.3.post5) for details.
+- **2026-02-06** ✨ Added Moonshot/Kimi provider, Discord integration, and enhanced security hardening!
+- **2026-02-05** ✨ Added Feishu channel, DeepSeek provider, and enhanced scheduled tasks support!
+- **2026-02-04** 🚀 Released **v0.1.3.post4** with multi-provider & Docker support! Check [here](https://github.com/HKUDS/nanobot/releases/tag/v0.1.3.post4) for details.
+- **2026-02-03** ⚡ Integrated vLLM for local LLM support and improved natural language task scheduling!
+- **2026-02-02** 🎉 nanobot officially launched! Welcome to try 🐈 nanobot!
 
-## ✨ 特性
+</details>
 
-- Agent 主循环：LLM 调用、工具调用、会话上下文、错误恢复
-- 配置系统：`~/.flyflor/config.json`，支持 provider 自动匹配
-- 会话与记忆：JSONL 会话持久化 + 二层记忆（`memory/MEMORY.md` + `memory/HISTORY.md`）
-- 多模态输入：会将入站图片附件转换为 OpenAI 兼容的 `image_url` 内容片段
-- 工具系统：
-  - `read_file` / `write_file` / `edit_file` / `list_dir`
-  - `exec`
-  - `web_search` / `web_fetch` / `http_request`
-  - `message` / `spawn` / `cron` / `sessions_list` / `sessions_history` / `sessions_send`
-  - `spawn` 子代理具备当前时间上下文、`edit_file` 能力与 `skills/` 路径提示
-- 定时任务与心跳：
-  - `CronService`（add/list/remove/enable/run + 持久化）
-  - `HeartbeatService`
-- 多渠道接入：
-  - Telegram（long polling，支持媒体下载与语音转写）
-  - Discord（Gateway + REST，支持 typing 指示）
-  - WhatsApp（Node bridge）
-  - Feishu（REST 发送；WebSocket 接收可选特性）
-  - Mochat（Claw IM，HTTP watch/polling）
-  - DingTalk（Stream 接收可选特性）
-  - Email（IMAP 收信 + SMTP 发信，需显式 consent）
-  - Slack（Socket Mode）
-  - QQ（可选特性，`qq-botrs`）
-- 内置 skills：项目内置 `skills/*`
-- 运维与维护能力：
-  - `health` / `doctor --fix` / `update`
-  - `pairing list|approve|reject`（陌生私聊配对审批）
-  - `sessions list|show|delete`
-  - `webui` 终端风格控制面板，支持：
-    - 内置对话（`POST /api/chat`）
-    - 中英双语（按浏览器语言自动切换）
-    - 一屏布局（桌面端页面不滚动，面板内滚动）
 
-## 📦 环境要求
+## 💡 Key Features of nanobot
 
-- Rust stable（建议 1.85+）
-- 可选：
-  - Node.js 18+（WhatsApp bridge 登录）
-  - Brave Search API Key（`web_search`，可选；未配置时自动降级到 DuckDuckGo 无 key 搜索）
-  - Groq API Key（语音转写）
+- **Ultra-lightweight**: stable long-running agent behavior with a small, readable core.
+- **Research-ready**: the codebase is intentionally simple enough to study, modify, and extend.
+- **Practical**: chat channels, API, memory, MCP, and deployment paths are already built in.
+- **Hackable**: you can start fast, then go deeper through repo docs instead of a monolithic landing page.
 
-## ⚡ 快速开始
+## 📦 Install
 
-### 1. 初始化
+> [!IMPORTANT]
+> If you want the newest features and experiments, install from source. 
+> 
+> If you want the most stable day-to-day experience, install from PyPI or with `uv`.
+
+**Install from source**
 
 ```bash
-cargo run -- onboard
+git clone https://github.com/HKUDS/nanobot.git
+cd nanobot
+pip install -e .
 ```
 
-该步骤会初始化工作区基础结构，包括 `memory/MEMORY.md`、`memory/HISTORY.md` 与用于本地自定义技能的 `skills/` 目录。
+**Install with `uv`**
 
-### 2. 配置 API Key
+```bash
+uv tool install nanobot-ai
+```
 
-编辑 `~/.flyflor/config.json`，最小配置示例：
+**Install from PyPI**
+
+```bash
+pip install nanobot-ai
+```
+
+## 🚀 Quick Start
+
+**1. Initialize**
+
+```bash
+nanobot onboard
+```
+
+**2. Configure** (`~/.nanobot/config.json`)
+
+Configure these **two parts** in your config (other options have defaults). Add or merge the following blocks into your existing config instead of replacing the whole file.
+
+*Set your API key* (e.g. [OpenRouter](https://openrouter.ai/keys), recommended for global users):
 
 ```json
 {
   "providers": {
-    "openai": {
-      "apiKey": "sk-xxx"
-    },
     "openrouter": {
-      "apiKey": "sk-or-xxx",
-      "extraHeaders": {
-        "HTTP-Referer": "https://example.com",
-        "X-Title": "flyflor"
-      }
-    }
-  },
-  "agents": {
-    "defaults": {
-      "model": "gpt-4o-mini",
-      "timezone": "Asia/Shanghai"
+      "apiKey": "sk-or-v1-xxx"
     }
   }
 }
 ```
 
-`agents.defaults.timezone` 使用 IANA 时区名，例如 `Asia/Shanghai`、`America/Los_Angeles`。它会统一影响系统提示中的当前时间、heartbeat 提示，以及聊天里 `cron` 工具对无 `tz` 的 cron 表达式和无时区 ISO 时间的解释；未配置时默认 `UTC`。
-
-如需使用 MiniMax，可在 `providers.minimax` 中配置密钥，并将模型设置为包含 `minimax` 的名称（例如 `minimax/MiniMax-M2.1`）：
-
-```json
-{
-  "providers": {
-    "minimax": {
-      "apiKey": "minimax-xxx"
-    }
-  },
-  "agents": {
-    "defaults": {
-      "model": "minimax/MiniMax-M2.1"
-    }
-  }
-}
-```
-
-如果你的密钥来自 MiniMax 中国大陆平台（minimaxi.com），请设置：
-
-```json
-{
-  "providers": {
-    "minimax": {
-      "apiBase": "https://api.minimaxi.com/v1"
-    }
-  }
-}
-```
-
-如需使用 SiliconFlow / VolcEngine 网关，可配置对应 provider，并直接使用目标模型名：
-
-```json
-{
-  "providers": {
-    "siliconflow": {
-      "apiKey": "sk-xxx"
-    },
-    "volcengine": {
-      "apiKey": "ark-xxx"
-    }
-  },
-  "agents": {
-    "defaults": {
-      "model": "doubao-seed-1-6-thinking-250715"
-    }
-  }
-}
-```
-
-`flyflor` 使用 LiteLLM 风格的模型路由。你可以直接填写模型（不再需要 `litellm/` 前缀），例如：
+*Set your model* (optionally pin a provider — defaults to auto-detection):
 
 ```json
 {
   "agents": {
     "defaults": {
-      "model": "anthropic/claude-3-7-sonnet"
+      "provider": "openrouter",
+      "model": "anthropic/claude-opus-4-6"
     }
   }
 }
 ```
 
-`web_search` 默认优先使用 Brave（若配置了 key）；未配置 `BRAVE_API_KEY` 时会自动使用 DuckDuckGo 无 key 兜底。  
-`web_fetch` 一直可用，可直接抓取指定 URL 的正文内容。
-`http_request` 可直接发起 API 请求（支持 `GET/POST/PUT/PATCH/DELETE`、headers、query、json/body），适合访问本机端口或内网服务。
+**3. Chat**
 
-如需切换 `web_search` provider（Perplexity / Grok），可在 `tools.web.search` 配置：
+```bash
+nanobot agent
+```
+
+
+- Want different LLM providers, web search, MCP, security settings, or more config options? See [Configuration](./docs/configuration.md)
+- Want to run nanobot in chat apps like Telegram, Discord, WeChat or Feishu? See [Chat Apps](./docs/chat-apps.md)
+- Want Docker or Linux service deployment? See [Deployment](./docs/deployment.md)
+
+## 🧪 WebUI (Development)
+
+> [!NOTE]
+> The WebUI development workflow currently requires a source checkout and is not yet shipped together with the official packaged release. See [WebUI Document](./webui/README.md) for full WebUI development docs and build steps.
+
+<p align="center">
+  <img src="images/nanobot_webui.png" alt="nanobot webui preview" width="900">
+</p>
+
+**1. Enable the WebSocket channel in `~/.nanobot/config.json`**
 
 ```json
-{
-  "tools": {
-    "web": {
-      "search": {
-        "provider": "perplexity",
-        "maxResults": 5,
-        "perplexity": {
-          "apiKey": "pplx-xxx",
-          "baseUrl": "https://api.perplexity.ai",
-          "model": "perplexity/sonar-pro"
-        }
-      }
-    }
-  }
-}
+{ "channels": { "websocket": { "enabled": true } } }
 ```
 
-Grok 配置示例：
-
-```json
-{
-  "tools": {
-    "web": {
-      "search": {
-        "provider": "grok",
-        "grok": {
-          "apiKey": "xai-xxx",
-          "model": "grok-4-1-fast",
-          "inlineCitations": true
-        }
-      }
-    }
-  }
-}
-```
-
-如需使用钉钉，还可在 `channels` 中增加：
-
-```json
-{
-  "channels": {
-    "dingtalk": {
-      "enabled": true,
-      "clientId": "dingxxx",
-      "clientSecret": "secretxxx",
-      "allowFrom": []
-    }
-  }
-}
-```
-
-如需使用 Email 通道（IMAP + SMTP）：
-
-```json
-{
-  "channels": {
-    "email": {
-      "enabled": true,
-      "consentGranted": true,
-      "imapHost": "imap.gmail.com",
-      "imapPort": 993,
-      "imapUsername": "you@gmail.com",
-      "imapPassword": "app-password",
-      "smtpHost": "smtp.gmail.com",
-      "smtpPort": 587,
-      "smtpUsername": "you@gmail.com",
-      "smtpPassword": "app-password",
-      "smtpUseTls": true,
-      "fromAddress": "you@gmail.com",
-      "allowFrom": ["trusted@example.com"]
-    }
-  }
-}
-```
-
-如需使用 Slack 通道（Socket Mode）：
-
-```json
-{
-  "channels": {
-    "slack": {
-      "enabled": true,
-      "mode": "socket",
-      "botToken": "xoxb-...",
-      "appToken": "xapp-...",
-      "groupPolicy": "mention",
-      "groupAllowFrom": [],
-      "dm": {
-        "enabled": true,
-        "policy": "open",
-        "allowFrom": []
-      }
-    }
-  }
-}
-```
-
-如需使用 QQ 通道（当前仅支持单聊）：
-
-```json
-{
-  "channels": {
-    "qq": {
-      "enabled": true,
-      "appId": "your-app-id",
-      "secret": "your-secret",
-      "allowFrom": []
-    }
-  }
-}
-```
-
-如需使用 Mochat 通道（Claw IM）：
-
-```json
-{
-  "channels": {
-    "mochat": {
-      "enabled": true,
-      "baseUrl": "https://mochat.io",
-      "clawToken": "claw_xxx",
-      "agentUserId": "6982abcdef",
-      "sessions": ["*"],
-      "panels": ["*"],
-      "allowFrom": [],
-      "replyDelayMode": "non-mention",
-      "replyDelayMs": 120000
-    }
-  }
-}
-```
-
-### 3. 直接对话
+**2. Start the gateway**
 
 ```bash
-cargo run -- agent -m "Hello"
+nanobot gateway
 ```
 
-### 4. 启动网关
+**3. Start the webui dev server**
 
 ```bash
-cargo run -- gateway
+cd webui
+bun install
+bun run dev
 ```
 
-### 5. 启动 WebUI（terminal-cli 风格 + 可对话）
+## 🏗️ Architecture
 
-```bash
-cargo run -- webui --host 127.0.0.1 --port 18890
-```
+<p align="center">
+  <img src="images/nanobot_arch.png" alt="nanobot architecture" width="800">
+</p>
 
-然后访问 `http://127.0.0.1:18890`。
+🐈 nanobot stays lightweight by centering everything around a small agent loop: messages come in from chat apps, the LLM decides when tools are needed, and memory or skills are pulled in only as context instead of becoming a heavy orchestration layer. That keeps the core path readable and easy to extend, while still letting you add channels, tools, memory, and deployment options without turning the system into a monolith.
 
-你可以直接在 WebUI 聊天面板里对话。  
-默认会话键是 `webui:default`。
+## ✨ Features
 
-### 6. WebUI 对话 API
+<table align="center">
+  <tr align="center">
+    <th><p align="center">📈 24/7 Real-Time Market Analysis</p></th>
+    <th><p align="center">🚀 Full-Stack Software Engineer</p></th>
+    <th><p align="center">📅 Smart Daily Routine Manager</p></th>
+    <th><p align="center">📚 Personal Knowledge Assistant</p></th>
+  </tr>
+  <tr>
+    <td align="center"><p align="center"><img src="case/search.gif" width="180" height="400"></p></td>
+    <td align="center"><p align="center"><img src="case/code.gif" width="180" height="400"></p></td>
+    <td align="center"><p align="center"><img src="case/schedule.gif" width="180" height="400"></p></td>
+    <td align="center"><p align="center"><img src="case/memory.gif" width="180" height="400"></p></td>
+  </tr>
+  <tr>
+    <td align="center">Discovery • Insights • Trends</td>
+    <td align="center">Develop • Deploy • Scale</td>
+    <td align="center">Schedule • Automate • Organize</td>
+    <td align="center">Learn • Memory • Reasoning</td>
+  </tr>
+</table>
 
-```bash
-curl -X POST http://127.0.0.1:18890/api/chat \
-  -H "Content-Type: application/json" \
-  -d "{\"message\":\"你好\",\"session\":\"webui:default\"}"
-```
+## 📚 Docs
 
-## 🪟 Windows 服务（NSSM）
+Browse the [repo docs](./docs/README.md) for the latest features and GitHub development version, or visit [nanobot.wiki](https://nanobot.wiki/docs/latest/getting-started/nanobot-overview) for the stable release documentation.
 
-`flyflor` 支持通过 `nssm` 注册为 Windows 后台服务，并提供统一命令：
+- Talk to your nanobot with familiar chat apps: [Chat Apps](./docs/chat-apps.md)
+- Configure providers, web search, MCP, and runtime behavior: [Configuration](./docs/configuration.md)
+- Integrate nanobot with local tools and automations: [OpenAI-Compatible API](./docs/openai-api.md) · [Python SDK](./docs/python-sdk.md)
+- Run nanobot with Docker or as a Linux service: [Deployment](./docs/deployment.md)
 
-- `service install`
-- `service remove`
-- `service start`
-- `service stop`
-- `service restart`
-- `service status`
+## 🤝 Contribute & Roadmap
 
-先构建 release（建议带上你需要的功能特性）：
+PRs welcome! The codebase is intentionally small and readable. 🤗
 
-```powershell
-cargo build --release --all-features
-```
+### Branching Strategy
 
-安装服务（默认服务名：`FlyflorService`，默认参数：`gateway`）：
+| Branch | Purpose |
+|--------|---------|
+| `main` | Stable releases — bug fixes and minor improvements |
+| `nightly` | Experimental features — new features and breaking changes |
 
-```powershell
-.\target\release\flyflor.exe service install
-```
+**Unsure which branch to target?** See [CONTRIBUTING.md](./CONTRIBUTING.md) for details.
 
-服务名可选覆盖：
+**Roadmap** — Pick an item and [open a PR](https://github.com/HKUDS/nanobot/pulls)!
 
-```powershell
-.\target\release\flyflor.exe service install --name FlyflorService2
-```
+- **Multi-modal** — See and hear (images, voice, video)
+- **Long-term memory** — Never forget important context
+- **Better reasoning** — Multi-step planning and reflection
+- **More integrations** — Calendar and more
+- **Self-improvement** — Learn from feedback and mistakes
 
-当你传入 `--name` 时，程序会把该名字写入 `~/.flyflor/config.json` 的 `service.name`，后续 `start/stop/status` 可直接省略 `--name`。
+## Contact
 
-### 服务账号模式
+This project was started by [Xubin Ren](https://github.com/re-bin) as a personal open-source project and continues to be maintained in an individual capacity using personal resources, with contributions from the open-source community. Feel free to contact [xubinrencs@gmail.com](mailto:xubinrencs@gmail.com) for questions, ideas, or collaboration.
 
-1. 使用 `LocalSystem`（系统账号）：
+### Contributors
 
-```powershell
-.\target\release\flyflor.exe service install --system
-```
+<a href="https://github.com/HKUDS/nanobot/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=HKUDS/nanobot&max=100&columns=12&updated=20260210" alt="Contributors" />
+</a>
 
-2. 使用当前用户（推荐，便于读取你用户目录下的 `~/.flyflor/config.json`）：
 
-```powershell
-.\target\release\flyflor.exe service install --use-current-user --password "你的Windows登录密码"
-```
+## ⭐ Star History
 
-也可用环境变量避免命令行明文密码：
+<div align="center">
+  <a href="https://star-history.com/#HKUDS/nanobot&Date">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=HKUDS/nanobot&type=Date&theme=dark" />
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=HKUDS/nanobot&type=Date" />
+      <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=HKUDS/nanobot&type=Date" style="border-radius: 15px; box-shadow: 0 0 30px rgba(0, 217, 255, 0.3);" />
+    </picture>
+  </a>
+</div>
 
-```powershell
-$env:FLYFLOR_SERVICE_PASSWORD="你的Windows登录密码"
-.\target\release\flyflor.exe service install --use-current-user
-Remove-Item Env:FLYFLOR_SERVICE_PASSWORD
-```
-
-### 常用服务命令
-
-```powershell
-.\target\release\flyflor.exe service status
-.\target\release\flyflor.exe service start
-.\target\release\flyflor.exe service stop
-.\target\release\flyflor.exe service restart
-.\target\release\flyflor.exe service remove
-```
-
-### 注意事项
-
-- 请使用“管理员 PowerShell”执行服务安装/启停/删除。
-- `--use-current-user` 的密码是 Windows 登录密码，不是 PIN。
-- `Error 1069` 通常表示服务登录凭据错误或缺少“作为服务登录”权限。
-- 如果提示“服务已标记为删除”，请关闭 `services.msc` 等窗口后稍等重试；必要时重启系统。
-
-## 🧰 常用命令
-
-```bash
-# 状态与版本
-cargo run -- status
-cargo run -- version
-cargo run -- health
-cargo run -- doctor
-cargo run -- doctor --fix
-cargo run -- update
-
-# 交互模式
-cargo run -- agent
-
-# WebUI
-cargo run -- webui
-
-# WebUI 对话 API
-curl -X POST http://127.0.0.1:18890/api/chat \
-  -H "Content-Type: application/json" \
-  -d "{\"message\":\"你好\",\"session\":\"webui:default\"}"
-
-# 渠道
-cargo run -- channels status
-cargo run -- channels login
-
-# 配对审批（陌生发送者）
-cargo run -- pairing list
-cargo run -- pairing approve telegram <CODE>
-cargo run -- pairing reject telegram <CODE>
-
-# 会话管理
-cargo run -- sessions list
-cargo run -- sessions show telegram:123456 --limit 30
-cargo run -- sessions delete telegram:123456
-
-# 定时任务
-cargo run -- cron list
-cargo run -- cron add -n daily -m "Good morning" --cron "0 9 * * *"
-cargo run -- cron enable <job_id>
-cargo run -- cron run <job_id>
-cargo run -- cron remove <job_id>
-```
-
-聊天里的 `cron` 工具会默认继承 `agents.defaults.timezone`。像“明早 8 点提醒我”这类请求，如果没有显式给时区，就会按该配置解释。
-
-交互模式退出命令：`exit`、`quit`、`/exit`、`/quit`、`:q`，或 `Ctrl+C`/`Ctrl+D`。
-
-## 📨 Feishu WebSocket 接收
-
-默认构建下可正常发送消息。要启用 Feishu WebSocket 接收：
-
-```bash
-cargo run --features feishu-websocket -- gateway
-```
-
-## 📡 DingTalk Stream 接收
-
-默认构建不启用钉钉 Stream。要启用钉钉接收：
-
-```bash
-cargo run --features dingtalk-stream -- gateway
-```
-
-## 💬 Mochat 通道（Claw IM）
-
-默认关闭。启用后使用 HTTP watch/polling 方式收发消息：
-
-1. 可选：让 flyflor 自动接入 Mochat
-- 你可以先在 agent 模式里发这段提示词（把邮箱替换成你的）：
-
-```text
-Register on MoChat and bind this Flyflor instance as your owner. My Email account is xxx@xxx. DM me on MoChat after binding.
-```
-
-- flyflor 会尝试自动注册并写入 `~/.flyflor/config.json`。
-
-2. 手动配置（推荐你确认一次配置）
-- 在 `~/.flyflor/config.json` 配置 `channels.mochat`：
-- `clawToken`：必填，作为 `X-Claw-Token` 访问 Mochat API
-- `sessions` / `panels`：可填具体 ID，或 `["*"]` 自动发现
-- `groups` + `mention.requireInGroups`：控制群聊是否必须 @ 才触发
-
-```json
-{
-  "channels": {
-    "mochat": {
-      "enabled": true,
-      "baseUrl": "https://mochat.io",
-      "socketUrl": "https://mochat.io",
-      "socketPath": "/socket.io",
-      "clawToken": "claw_xxx",
-      "agentUserId": "6982abcdef",
-      "sessions": ["*"],
-      "panels": ["*"],
-      "replyDelayMode": "non-mention",
-      "replyDelayMs": 120000
-    }
-  }
-}
-```
-
-3. 启动网关：
-
-```bash
-cargo run -- gateway
-```
-
-4. 发送消息测试
-- 私聊会话：使用 `session_xxx` 目标
-- 群/面板会话：使用 panel/group 目标
-
-## 🐧 QQ 通道（当前仅支持单聊）
-
-默认构建不启用 QQ；需通过 `qq-botrs` 特性开启。
-
-1. 注册并创建机器人
-- 访问 [QQ 开放平台](https://q.qq.com) 注册开发者并创建机器人应用
-- 在开发设置中获取 `AppID` 和 `AppSecret`
-
-2. 完成沙箱测试配置
-- 在机器人控制台进入沙箱配置
-- 将你的 QQ 号加入消息测试成员
-- 使用手机 QQ 扫码后，进入机器人会话测试收发
-
-3. 配置 `~/.flyflor/config.json`
-- 使用上面的 `qq` 配置片段，填入 `appId`、`secret`
-- `allowFrom` 为空表示不限制；若需限制，可填入允许的用户 openid（可从运行日志中获取）
-
-4. 运行网关
-
-```bash
-cargo run --features qq-botrs -- gateway
-```
-
-启动后，向机器人发送 QQ 单聊消息即可收到回复。
-
-## 🧩 Slack 通道
-
-使用 Socket Mode，无需公网回调 URL。
-
-1. 创建 Slack App
-- 打开 [Slack API](https://api.slack.com/apps) -> Create New App -> From scratch
-- 选择工作区并创建应用
-
-2. 配置应用能力
-- Socket Mode：开启，并创建 App-Level Token（`connections:write`，形如 `xapp-...`）
-- OAuth & Permissions：添加 bot scopes：`chat:write`、`reactions:write`、`app_mentions:read`
-- Event Subscriptions：开启并订阅 `message.im`、`message.channels`、`app_mention`
-- App Home：开启 Messages Tab，并允许从 Messages Tab 发消息
-- Install App：安装到工作区，获取 Bot Token（`xoxb-...`）
-
-3. 配置 `~/.flyflor/config.json`
-
-```json
-{
-  "channels": {
-    "slack": {
-      "enabled": true,
-      "mode": "socket",
-      "botToken": "xoxb-...",
-      "appToken": "xapp-...",
-      "groupPolicy": "mention",
-      "groupAllowFrom": [],
-      "dm": {
-        "enabled": true,
-        "policy": "open",
-        "allowFrom": []
-      }
-    }
-  }
-}
-```
-
-4. 启动网关
-
-```bash
-cargo run -- gateway
-```
-
-你可以在私聊中直接消息机器人，或在频道里 @ 机器人触发回复。
-
-## 📱 WhatsApp 登录
-
-`channels login` 会自动：
-
-- 准备 `~/.flyflor/bridge`
-- 执行 `npm install`
-- 执行 `npm run build`
-- 启动 bridge 并在终端展示二维码登录
-
-## 🛠️ 开发
-
-```bash
-cargo fmt
-cargo test
-cargo check --features feishu-websocket
-cargo check --features dingtalk-stream
-cargo check --features qq-botrs
-```
-
-## 📄 License
-
-MIT
+<p align="center">
+  <em> Thanks for visiting ✨ nanobot!</em><br><br>
+  <img src="https://visitor-badge.laobi.icu/badge?page_id=HKUDS.nanobot&style=for-the-badge&color=00d4ff" alt="Views">
+</p>

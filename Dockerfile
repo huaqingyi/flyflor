@@ -1,31 +1,50 @@
-FROM node:24-bookworm-slim AS node-runtime
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 
-FROM rust:1.88-slim-bookworm AS dev
+# Install Node.js 20 for the WhatsApp bridge
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl ca-certificates gnupg git bubblewrap openssh-client && \
+    mkdir -p /etc/apt/keyrings && \
+    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
+    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" > /etc/apt/sources.list.d/nodesource.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends nodejs && \
+    apt-get purge -y gnupg && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*
 
-ENV DEBIAN_FRONTEND=noninteractive
+WORKDIR /app
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        bash \
-        build-essential \
-        ca-certificates \
-        curl \
-        git \
-        libssl-dev \
-        pkg-config \
-    && rm -rf /var/lib/apt/lists/*
+# Install Python dependencies first (cached layer)
+COPY pyproject.toml README.md LICENSE ./
+RUN mkdir -p nanobot bridge && touch nanobot/__init__.py && \
+    uv pip install --system --no-cache . && \
+    rm -rf nanobot bridge
 
-COPY --from=node-runtime /usr/local/bin/node /usr/local/bin/node
-COPY --from=node-runtime /usr/local/lib/node_modules /usr/local/lib/node_modules
+# Copy the full source and install
+COPY nanobot/ nanobot/
+COPY bridge/ bridge/
+RUN uv pip install --system --no-cache .
 
-RUN ln -sf ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
-    && ln -sf ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
+# Build the WhatsApp bridge
+WORKDIR /app/bridge
+RUN git config --global --add url."https://github.com/".insteadOf ssh://git@github.com/ && \
+    git config --global --add url."https://github.com/".insteadOf git@github.com: && \
+    npm install && npm run build
+WORKDIR /app
 
-ENV CARGO_HOME=/usr/local/cargo \
-    CARGO_TARGET_DIR=/workspace/flyflor/target \
-    FLYFLOR_DEV=1 \
-    PATH=/usr/local/cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# Create non-root user and config directory
+RUN useradd -m -u 1000 -s /bin/bash nanobot && \
+    mkdir -p /home/nanobot/.nanobot && \
+    chown -R nanobot:nanobot /home/nanobot /app
 
-WORKDIR /workspace/flyflor
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN sed -i 's/\r$//' /usr/local/bin/entrypoint.sh && chmod +x /usr/local/bin/entrypoint.sh
 
-CMD ["bash"]
+USER nanobot
+ENV HOME=/home/nanobot
+
+# Gateway default port
+EXPOSE 18790
+
+ENTRYPOINT ["entrypoint.sh"]
+CMD ["status"]
