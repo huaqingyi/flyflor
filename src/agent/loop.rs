@@ -1,3 +1,7 @@
+use crate::agent::blackboard::{
+    BlackboardMode, ComplexityAssessment, assess_blackboard_complexity, blackboard_system_prompt,
+    intro_system_prompt, is_intro_mode_request, strip_intro_mode_prefix,
+};
 use crate::agent::context::ContextBuilder;
 use crate::agent::subagent::SubagentManager;
 use crate::agent::turn_guard::TurnGuard;
@@ -20,9 +24,11 @@ use crate::utils::normalize_timezone_value;
 use anyhow::{Context, Result};
 use chrono::Local;
 use serde_json::{Value, json};
+use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use tokio::sync::Mutex;
 use tokio::time::{Duration, timeout};
 
 pub struct AgentLoop {
@@ -40,7 +46,16 @@ pub struct AgentLoop {
     spawn_tool: Arc<SpawnTool>,
     cron_tool: Option<Arc<CronTool>>,
     subagents: Arc<SubagentManager>,
+    blackboard_leases: Arc<Mutex<HashSet<String>>>,
     running: AtomicBool,
+}
+
+struct TurnExecution {
+    answer: String,
+    tools_used: Vec<String>,
+    iterations_run: u32,
+    should_escalate: bool,
+    escalation_reasons: Vec<String>,
 }
 
 impl AgentLoop {
@@ -69,6 +84,16 @@ impl AgentLoop {
         })
     }
 
+    fn emit_agent_event(&self, event: &str, payload: Value) {
+        eprintln!(
+            "{}",
+            json!({
+                "event": event,
+                "payload": payload,
+            })
+        );
+    }
+
     fn build_turn_messages(
         &self,
         history: &[Value],
@@ -86,6 +111,41 @@ impl AgentLoop {
             media,
         );
         messages.insert(1, self.runtime_facts_message());
+        messages
+    }
+
+    fn build_turn_messages_for_mode(
+        &self,
+        history: &[Value],
+        current_message: &str,
+        channel: &str,
+        chat_id: &str,
+        media: Option<&[String]>,
+        assessment: &ComplexityAssessment,
+        intro_mode: bool,
+    ) -> Vec<Value> {
+        let mut messages =
+            self.build_turn_messages(history, current_message, channel, chat_id, media);
+        let mut insert_at = 2;
+        if intro_mode {
+            messages.insert(
+                insert_at,
+                json!({
+                    "role": "system",
+                    "content": intro_system_prompt(),
+                }),
+            );
+            insert_at += 1;
+        }
+        if assessment.mode == BlackboardMode::Blackboard {
+            messages.insert(
+                insert_at,
+                json!({
+                    "role": "system",
+                    "content": blackboard_system_prompt(assessment),
+                }),
+            );
+        }
         messages
     }
 
@@ -196,6 +256,7 @@ impl AgentLoop {
             spawn_tool,
             cron_tool,
             subagents,
+            blackboard_leases: Arc::new(Mutex::new(HashSet::new())),
             running: AtomicBool::new(false),
         })
     }
@@ -230,6 +291,200 @@ impl AgentLoop {
 
     pub fn stop(&self) {
         self.running.store(false, Ordering::Relaxed);
+    }
+
+    async fn run_model_turn(
+        &self,
+        mut messages: Vec<Value>,
+        original_content: &str,
+        channel: &str,
+        chat_id: &str,
+        media: Option<&[String]>,
+        assessment: &ComplexityAssessment,
+        intro_mode: bool,
+    ) -> Result<TurnExecution> {
+        let mut final_content: Option<String> = None;
+        let mut retried_with_fresh_context = false;
+        let mut tools_used: Vec<String> = Vec::new();
+        let mut iterations_run = 0u32;
+        let mut second_round_requires_tools = false;
+        let mut max_consecutive_tool_failures = 0usize;
+        let mut last_failed_tool: Option<String> = None;
+        let mut consecutive_tool_failures = 0usize;
+        let turn_guard = TurnGuard::new(
+            self.provider.as_ref(),
+            &self.model,
+            self.available_tools_text(),
+            self.max_iterations,
+        );
+
+        for iteration in 1..=self.max_iterations {
+            iterations_run = iteration;
+            let tool_defs = self.tools.get_definitions();
+            let response = self
+                .provider
+                .chat(&messages, Some(&tool_defs), Some(&self.model), 4096, 0.7)
+                .await?;
+
+            if response.has_tool_calls() {
+                if iteration >= 2 {
+                    second_round_requires_tools = true;
+                }
+                let tool_call_dicts = response
+                    .tool_calls
+                    .iter()
+                    .map(|tc| {
+                        json!({
+                            "id": tc.id,
+                            "type": "function",
+                            "function": {
+                                "name": tc.name,
+                                "arguments": serde_json::to_string(&tc.arguments).unwrap_or_else(|_| "{}".to_string()),
+                            }
+                        })
+                    })
+                    .collect::<Vec<_>>();
+                self.context.add_assistant_message(
+                    &mut messages,
+                    response.content.as_deref(),
+                    Some(tool_call_dicts),
+                    response.reasoning_content.as_deref(),
+                );
+
+                for tool_call in response.tool_calls {
+                    tools_used.push(tool_call.name.clone());
+                    let result = self
+                        .tools
+                        .execute(&tool_call.name, &tool_call.arguments)
+                        .await;
+                    if result.trim_start().starts_with("Error") {
+                        if last_failed_tool.as_deref() == Some(tool_call.name.as_str()) {
+                            consecutive_tool_failures += 1;
+                        } else {
+                            consecutive_tool_failures = 1;
+                            last_failed_tool = Some(tool_call.name.clone());
+                        }
+                        max_consecutive_tool_failures =
+                            max_consecutive_tool_failures.max(consecutive_tool_failures);
+                    } else {
+                        consecutive_tool_failures = 0;
+                        last_failed_tool = None;
+                    }
+                    self.context.add_tool_result(
+                        &mut messages,
+                        &tool_call.id,
+                        &tool_call.name,
+                        &result,
+                    );
+                }
+                messages.push(json!({
+                    "role": "user",
+                    "content": "Reflect on the results and decide next steps."
+                }));
+            } else {
+                if turn_guard
+                    .should_retry_after_false_no_tools_claim(response.content.as_deref(), iteration)
+                    .await
+                {
+                    if !retried_with_fresh_context {
+                        messages = self.build_turn_messages_for_mode(
+                            &[],
+                            original_content,
+                            channel,
+                            chat_id,
+                            media,
+                            assessment,
+                            intro_mode,
+                        );
+                        messages.push(turn_guard.correction_message());
+                        retried_with_fresh_context = true;
+                        continue;
+                    }
+                    final_content = Some(turn_guard.tools_available_response());
+                    break;
+                }
+                final_content = response.content;
+                break;
+            }
+        }
+
+        let answer = final_content.unwrap_or_else(|| {
+            if iterations_run >= self.max_iterations {
+                format!(
+                    "Reached {} iterations without completion.",
+                    self.max_iterations
+                )
+            } else {
+                "I've completed processing but have no response to give.".to_string()
+            }
+        });
+
+        let mut escalation_reasons = Vec::new();
+        if tools_used.len() >= 3 {
+            escalation_reasons.push("tool churn reached 3 calls".to_string());
+        }
+        if max_consecutive_tool_failures >= 2 {
+            escalation_reasons.push("same tool failed twice consecutively".to_string());
+        }
+        if second_round_requires_tools {
+            escalation_reasons.push("second LLM round still required tools".to_string());
+        }
+        let should_escalate =
+            assessment.mode == BlackboardMode::DirectWithWatch && !escalation_reasons.is_empty();
+
+        Ok(TurnExecution {
+            answer,
+            tools_used,
+            iterations_run,
+            should_escalate,
+            escalation_reasons,
+        })
+    }
+
+    async fn run_assessed_turn(
+        &self,
+        session_key: &str,
+        messages: Vec<Value>,
+        original_content: &str,
+        channel: &str,
+        chat_id: &str,
+        media: Option<&[String]>,
+        assessment: &ComplexityAssessment,
+        intro_mode: bool,
+    ) -> Result<TurnExecution> {
+        let lease_acquired = if assessment.mode == BlackboardMode::Blackboard {
+            let mut leases = self.blackboard_leases.lock().await;
+            if !leases.insert(session_key.to_string()) {
+                return Ok(TurnExecution {
+                    answer: "```flyflor-decision-form\n{\"title\":\"Blackboard turn already running\",\"description\":\"This session already has an active blackboard turn. Wait for it to finish, or start a new session for independent work.\",\"options\":[{\"id\":\"wait\",\"label\":\"Wait for the active turn\"},{\"id\":\"new-session\",\"label\":\"Use a new session\"}]}\n```".to_string(),
+                    tools_used: Vec::new(),
+                    iterations_run: 0,
+                    should_escalate: false,
+                    escalation_reasons: vec!["blackboard lease busy".to_string()],
+                });
+            }
+            true
+        } else {
+            false
+        };
+
+        let result = self
+            .run_model_turn(
+                messages,
+                original_content,
+                channel,
+                chat_id,
+                media,
+                assessment,
+                intro_mode,
+            )
+            .await;
+
+        if lease_acquired {
+            self.blackboard_leases.lock().await.remove(session_key);
+        }
+
+        result
     }
 
     async fn process_message(
@@ -291,110 +546,150 @@ impl AgentLoop {
         } else {
             Some(msg.media.as_slice())
         };
+        let intro_mode = is_intro_mode_request(&msg.content);
+        let turn_content = if intro_mode {
+            let stripped = strip_intro_mode_prefix(&msg.content);
+            if stripped.trim().is_empty() {
+                "介绍当前目标、工作方式和下一步。".to_string()
+            } else {
+                stripped
+            }
+        } else {
+            msg.content.clone()
+        };
+        let recent_tool_uses = session
+            .messages
+            .iter()
+            .rev()
+            .take(6)
+            .filter_map(|m| m.get("tools_used").and_then(Value::as_array))
+            .map(|tools| tools.len())
+            .sum::<usize>();
+        let mut assessment = assess_blackboard_complexity(
+            &turn_content,
+            msg.media.len(),
+            session.messages.len(),
+            recent_tool_uses,
+        );
+        let assessed_mode = assessment.mode;
+        if assessment.mode != BlackboardMode::Blackboard {
+            assessment.mode = BlackboardMode::Blackboard;
+            assessment
+                .reasons
+                .push("default blackboard enabled".to_string());
+        }
+        self.emit_agent_event(
+            "agent.complexity.assessed",
+            json!({
+                "session": &session.key,
+                "mode": assessment.mode.as_str(),
+                "assessedMode": assessed_mode.as_str(),
+                "score": assessment.score,
+                "threshold": assessment.threshold,
+                "directThreshold": assessment.direct_threshold,
+                "hardGate": assessment.hard_gate,
+                "reasons": &assessment.reasons,
+                "features": &assessment.features,
+                "introMode": intro_mode,
+            }),
+        );
+        let initial_mode = assessed_mode;
         // Deterministic anti-contamination: only current turn is sent to the model.
         let history = session.get_history(0);
-        let mut messages =
-            self.build_turn_messages(&history, &msg.content, &msg.channel, &msg.chat_id, media);
-
-        let mut final_content: Option<String> = None;
-        let mut retried_with_fresh_context = false;
-        let mut tools_used: Vec<String> = Vec::new();
-        let mut iterations_run = 0u32;
-        let turn_guard = TurnGuard::new(
-            self.provider.as_ref(),
-            &self.model,
-            self.available_tools_text(),
-            self.max_iterations,
+        let messages = self.build_turn_messages_for_mode(
+            &history,
+            &turn_content,
+            &msg.channel,
+            &msg.chat_id,
+            media,
+            &assessment,
+            intro_mode,
         );
-        for iteration in 1..=self.max_iterations {
-            iterations_run = iteration;
-            let tool_defs = self.tools.get_definitions();
-            let response = self
-                .provider
-                .chat(&messages, Some(&tool_defs), Some(&self.model), 4096, 0.7)
+        let mut execution = self
+            .run_assessed_turn(
+                &session.key,
+                messages,
+                &turn_content,
+                &msg.channel,
+                &msg.chat_id,
+                media,
+                &assessment,
+                intro_mode,
+            )
+            .await?;
+
+        let mut final_mode = assessment.mode;
+        if execution.should_escalate {
+            self.emit_agent_event(
+                "agent.blackboard.escalated",
+                json!({
+                    "session": &session.key,
+                    "from": assessment.mode.as_str(),
+                    "to": BlackboardMode::Blackboard.as_str(),
+                    "reasons": &execution.escalation_reasons,
+                }),
+            );
+            let mut blackboard_assessment = assessment.clone();
+            blackboard_assessment.mode = BlackboardMode::Blackboard;
+            blackboard_assessment.hard_gate = true;
+            blackboard_assessment
+                .reasons
+                .push("runtime escalation".to_string());
+            let messages = self.build_turn_messages_for_mode(
+                &history,
+                &turn_content,
+                &msg.channel,
+                &msg.chat_id,
+                media,
+                &blackboard_assessment,
+                intro_mode,
+            );
+            execution = self
+                .run_assessed_turn(
+                    &session.key,
+                    messages,
+                    &turn_content,
+                    &msg.channel,
+                    &msg.chat_id,
+                    media,
+                    &blackboard_assessment,
+                    intro_mode,
+                )
                 .await?;
-
-            if response.has_tool_calls() {
-                let tool_call_dicts = response
-                    .tool_calls
-                    .iter()
-                    .map(|tc| {
-                        json!({
-                            "id": tc.id,
-                            "type": "function",
-                            "function": {
-                                "name": tc.name,
-                                "arguments": serde_json::to_string(&tc.arguments).unwrap_or_else(|_| "{}".to_string()),
-                            }
-                        })
-                    })
-                    .collect::<Vec<_>>();
-                self.context.add_assistant_message(
-                    &mut messages,
-                    response.content.as_deref(),
-                    Some(tool_call_dicts),
-                    response.reasoning_content.as_deref(),
-                );
-
-                for tool_call in response.tool_calls {
-                    tools_used.push(tool_call.name.clone());
-                    let result = self
-                        .tools
-                        .execute(&tool_call.name, &tool_call.arguments)
-                        .await;
-                    self.context.add_tool_result(
-                        &mut messages,
-                        &tool_call.id,
-                        &tool_call.name,
-                        &result,
-                    );
-                }
-                messages.push(json!({
-                    "role": "user",
-                    "content": "Reflect on the results and decide next steps."
-                }));
-            } else {
-                if turn_guard
-                    .should_retry_after_false_no_tools_claim(response.content.as_deref(), iteration)
-                    .await
-                {
-                    if !retried_with_fresh_context {
-                        messages = self.build_turn_messages(
-                            &[],
-                            &msg.content,
-                            &msg.channel,
-                            &msg.chat_id,
-                            media,
-                        );
-                        messages.push(turn_guard.correction_message());
-                        retried_with_fresh_context = true;
-                        continue;
-                    }
-                    final_content = Some(turn_guard.tools_available_response());
-                    break;
-                }
-                final_content = response.content;
-                break;
-            }
+            final_mode = BlackboardMode::Blackboard;
+            assessment = blackboard_assessment;
         }
 
-        let answer = final_content.unwrap_or_else(|| {
-            if iterations_run >= self.max_iterations {
-                format!(
-                    "Reached {} iterations without completion.",
-                    self.max_iterations
-                )
-            } else {
-                "I've completed processing but have no response to give.".to_string()
-            }
-        });
-
         session.add_message("user", &msg.content);
-        session.add_message_with_tools("assistant", &answer, Some(&tools_used));
+        session.add_message_with_tools("assistant", &execution.answer, Some(&execution.tools_used));
+        session.metadata.insert(
+            "last_blackboard".to_string(),
+            json!({
+                "mode": final_mode.as_str(),
+                "initialMode": initial_mode.as_str(),
+                "score": assessment.score,
+                "hardGate": assessment.hard_gate,
+                "reasons": &assessment.reasons,
+                "introMode": intro_mode,
+                "iterations": execution.iterations_run,
+            }),
+        );
         self.sessions.save(&session)?;
 
-        let mut outbound = OutboundMessage::new(msg.channel, msg.chat_id, answer);
+        let mut outbound = OutboundMessage::new(msg.channel, msg.chat_id, execution.answer);
         outbound.metadata = msg.metadata;
+        outbound.metadata.insert(
+            "blackboard".to_string(),
+            json!({
+                "mode": final_mode.as_str(),
+                "score": assessment.score,
+                "hardGate": assessment.hard_gate,
+                "reasons": &assessment.reasons,
+                "introMode": intro_mode,
+                "iterations": execution.iterations_run,
+                "toolsUsed": &execution.tools_used,
+            }),
+        );
         Ok(outbound)
     }
 
