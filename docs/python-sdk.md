@@ -1,17 +1,17 @@
 # Python SDK
 
-Use nanobot as a library — no CLI, no gateway, just Python.
+Use flyflor as a library — no CLI, no gateway, just Python.
 
 ## Quick Start
 
 ```python
 import asyncio
 
-from nanobot import Nanobot
+from flyflor import Flyflor
 
 
 async def main() -> None:
-    bot = Nanobot.from_config()
+    bot = Flyflor.from_config()
     result = await bot.run("What time is it in Tokyo?")
     print(result.content)
 
@@ -19,17 +19,17 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
-`Nanobot.from_config()` reuses your normal `~/.nanobot/config.json`, so the SDK follows the same provider, model, tools, and workspace defaults as the CLI unless you override them.
+`Flyflor.from_config()` reuses your normal `~/.flyflor/config.json`, so the SDK follows the same provider, model, tools, and workspace defaults as the CLI unless you override them.
 
 ## Common Patterns
 
 ### Use a specific config or workspace
 
 ```python
-from nanobot import Nanobot
+from flyflor import Flyflor
 
-bot = Nanobot.from_config(
-    config_path="~/.nanobot/config.json",
+bot = Flyflor.from_config(
+    config_path="~/.flyflor/config.json",
     workspace="/my/project",
 )
 ```
@@ -45,10 +45,10 @@ await bot.run("hi", session_key="task-42")
 
 ### Attach hooks for observability
 
-Hooks let you inspect tool calls, streaming, and iteration state without modifying nanobot internals:
+Hooks let you inspect tool calls, streaming, and iteration state without modifying flyflor internals:
 
 ```python
-from nanobot.agent import AgentHook, AgentHookContext
+from flyflor.agent import AgentHook, AgentHookContext
 
 
 class AuditHook(AgentHook):
@@ -62,13 +62,13 @@ result = await bot.run("Review this change", hooks=[AuditHook()])
 
 ## API Reference
 
-### `Nanobot.from_config(config_path=None, *, workspace=None)`
+### `Flyflor.from_config(config_path=None, *, workspace=None)`
 
-Create a `Nanobot` instance from a config file.
+Create a `Flyflor` instance from a config file.
 
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
-| `config_path` | `str \| Path \| None` | `None` | Path to `config.json`. Defaults to `~/.nanobot/config.json`. |
+| `config_path` | `str \| Path \| None` | `None` | Path to `config.json`. Defaults to `~/.flyflor/config.json`. |
 | `workspace` | `str \| Path \| None` | `None` | Override the workspace directory from config. |
 
 Raises `FileNotFoundError` if an explicit config path does not exist.
@@ -123,7 +123,7 @@ Useful fields on `AgentHookContext` include:
 ### Example: audit tool calls
 
 ```python
-from nanobot.agent import AgentHook, AgentHookContext
+from flyflor.agent import AgentHook, AgentHookContext
 
 
 class AuditHook(AgentHook):
@@ -147,7 +147,7 @@ print(f"Tools observed: {hook.calls}")
 ### Example: receive streaming tokens
 
 ```python
-from nanobot.agent import AgentHook, AgentHookContext
+from flyflor.agent import AgentHook, AgentHookContext
 
 
 class StreamingHook(AgentHook):
@@ -174,7 +174,7 @@ Async hook methods are fan-out with error isolation. `finalize_content` is a pip
 ### Example: post-process final content
 
 ```python
-from nanobot.agent import AgentHook
+from flyflor.agent import AgentHook
 
 
 class Censor(AgentHook):
@@ -188,8 +188,8 @@ class Censor(AgentHook):
 import asyncio
 import time
 
-from nanobot import Nanobot
-from nanobot.agent import AgentHook, AgentHookContext
+from flyflor import Flyflor
+from flyflor.agent import AgentHook, AgentHookContext
 
 
 class TimingHook(AgentHook):
@@ -206,7 +206,7 @@ class TimingHook(AgentHook):
 
 
 async def main() -> None:
-    bot = Nanobot.from_config(workspace="/my/project")
+    bot = Flyflor.from_config(workspace="/my/project")
     result = await bot.run(
         "Explain the main function",
         session_key="sdk:demo",

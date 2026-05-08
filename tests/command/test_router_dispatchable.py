@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from nanobot.command.builtin import register_builtin_commands
-from nanobot.command.router import CommandContext, CommandRouter
+from flyflor.command.builtin import register_builtin_commands
+from flyflor.command.router import CommandContext, CommandRouter
 
 
 class TestIsDispatchableCommand:

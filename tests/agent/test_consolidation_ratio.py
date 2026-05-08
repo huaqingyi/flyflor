@@ -5,11 +5,11 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from pydantic import ValidationError
 
-import nanobot.agent.memory as memory_module
-from nanobot.agent.loop import AgentLoop
-from nanobot.bus.queue import MessageBus
-from nanobot.config.schema import AgentDefaults
-from nanobot.providers.base import GenerationSettings, LLMResponse
+import flyflor.agent.memory as memory_module
+from flyflor.agent.loop import AgentLoop
+from flyflor.bus.queue import MessageBus
+from flyflor.config.schema import AgentDefaults
+from flyflor.providers.base import GenerationSettings, LLMResponse
 
 
 def _make_loop(

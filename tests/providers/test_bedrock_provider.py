@@ -6,9 +6,9 @@ from typing import Any
 
 import pytest
 
-from nanobot.config.schema import Config, ProvidersConfig
-from nanobot.providers.bedrock_provider import BedrockProvider
-from nanobot.providers.registry import find_by_name
+from flyflor.config.schema import Config, ProvidersConfig
+from flyflor.providers.bedrock_provider import BedrockProvider
+from flyflor.providers.registry import find_by_name
 
 
 class FakeClient:

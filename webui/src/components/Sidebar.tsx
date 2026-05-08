@@ -49,15 +49,12 @@ export function Sidebar(props: SidebarProps) {
       className="flex h-full w-full flex-col border-r border-sidebar-border/60 bg-sidebar text-sidebar-foreground"
     >
       <div className="flex items-center justify-between px-3 pb-2.5 pt-3">
-        <picture className="block min-w-0">
-          <source srcSet="/brand/nanobot_logo.webp" type="image/webp" />
-          <img
-            src="/brand/nanobot_logo.png"
-            alt="nanobot"
-            className="h-6 w-auto select-none object-contain opacity-95"
-            draggable={false}
-          />
-        </picture>
+        <img
+          src="/brand/flyflor_logo.png"
+          alt="Flyflor"
+          className="h-8 w-8 select-none rounded-full object-cover ring-1 ring-sidebar-border/70"
+          draggable={false}
+        />
         <Button
           variant="ghost"
           size="icon"

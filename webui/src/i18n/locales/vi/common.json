@@ -1,28 +1,28 @@
 {
   "app": {
-    "brand": "nanobot",
+    "brand": "flyflor",
     "loading": {
-      "connecting": "Đang kết nối tới nanobot…",
-      "boot": "Đang tải nanobot…"
+      "connecting": "Đang kết nối tới flyflor…",
+      "boot": "Đang tải flyflor…"
     },
     "error": {
-      "title": "Không thể kết nối tới nanobot",
-      "gatewayHint": "Hãy chắc chắn gateway đang chạy (`nanobot gateway`) và trang này được mở trên cùng máy."
+      "title": "Không thể kết nối tới flyflor",
+      "gatewayHint": "Hãy chắc chắn gateway đang chạy (`flyflor gateway`) và trang này được mở trên cùng máy."
     },
     "system": {
       "section": "Hệ thống",
-      "restartHint": "Khởi động lại nanobot để áp dụng thay đổi runtime.",
-      "restart": "Khởi động lại nanobot"
+      "restartHint": "Khởi động lại flyflor để áp dụng thay đổi runtime.",
+      "restart": "Khởi động lại flyflor"
     },
     "restart": {
       "completed": "Khởi động lại hoàn tất sau {{seconds}} giây."
     },
     "documentTitle": {
-      "base": "nanobot",
-      "chat": "{{title}} · nanobot"
+      "base": "flyflor",
+      "chat": "{{title}} · flyflor"
     },
     "meta": {
-      "description": "Giao diện web nanobot — trò chuyện với workspace nanobot của bạn."
+      "description": "Giao diện web flyflor — trò chuyện với workspace flyflor của bạn."
     }
   },
   "sidebar": {
@@ -92,11 +92,11 @@
       "imageQuickActions": {
         "icon": {
           "title": "Thiết kế biểu tượng app",
-          "prompt": "Tạo một biểu tượng ứng dụng 1:1 gọn gàng cho nanobot: robot thân thiện, phong cách vector đơn giản, bảng màu xanh trắng dịu, không có chữ."
+          "prompt": "Tạo biểu tượng 1:1 cho Flyflor: trợ lý tóc trắng với hoa và pha lê, ánh tím và xanh cyan, không có chữ."
         },
         "sticker": {
           "title": "Tạo sticker",
-          "prompt": "Tạo một hình kiểu sticker dễ thương của trợ lý robot nhỏ, nền trông như trong suốt, biểu cảm và vui nhộn."
+          "prompt": "Tạo sticker Flyflor với tóc trắng, hoa trang trí, mắt tím và nền trông như trong suốt."
         },
         "poster": {
           "title": "Tạo poster",
@@ -171,7 +171,7 @@
             "description": "Hủy lượt agent đang chạy trong cuộc trò chuyện này."
           },
           "restart": {
-            "title": "Khởi động lại nanobot",
+            "title": "Khởi động lại flyflor",
             "description": "Khởi động lại tiến trình bot tại chỗ."
           },
           "status": {

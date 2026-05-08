@@ -3,8 +3,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from nanobot.bus.queue import MessageBus
-from nanobot.channels.feishu import FeishuChannel, FeishuConfig
+from flyflor.bus.queue import MessageBus
+from flyflor.channels.feishu import FeishuChannel, FeishuConfig
 
 
 def _make_channel(domain: str = "feishu") -> FeishuChannel:

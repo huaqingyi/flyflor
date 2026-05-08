@@ -1,0 +1,39 @@
+# Local development override loaded automatically by `docker compose`.
+#
+# Start the dev container once:
+#   docker compose up -d dev
+#
+# Then run CLI/debug commands without rebuilding:
+#   docker compose exec dev flyflor -h
+
+x-common-config: &common-config
+  image: flyflor-dev:local
+  environment:
+    PYTHONPATH: /app
+  volumes:
+    - ./flyflor:/app/flyflor
+    - ./README.md:/app/README.md:ro
+    - ./pyproject.toml:/app/pyproject.toml:ro
+    - ./docker/.flyflor:/home/flyflor/.flyflor
+
+services:
+  dev:
+    <<: *common-config
+    container_name: flyflor-dev
+    entrypoint: ["/bin/sh", "-lc"]
+    command: "tail -f /dev/null"
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+  flyflor-gateway:
+    <<: *common-config
+    ports:
+      - "18790:18790"
+      - "8765:8765"
+
+  flyflor-api:
+    <<: *common-config
+
+  flyflor-cli:
+    <<: *common-config

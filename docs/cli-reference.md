@@ -2,20 +2,20 @@
 
 | Command | Description |
 |---------|-------------|
-| `nanobot onboard` | Initialize config & workspace at `~/.nanobot/` |
-| `nanobot onboard --wizard` | Launch the interactive onboarding wizard |
-| `nanobot onboard -c <config> -w <workspace>` | Initialize or refresh a specific instance config and workspace |
-| `nanobot agent -m "..."` | Chat with the agent |
-| `nanobot agent -w <workspace>` | Chat against a specific workspace |
-| `nanobot agent -w <workspace> -c <config>` | Chat against a specific workspace/config |
-| `nanobot agent` | Interactive chat mode |
-| `nanobot agent --no-markdown` | Show plain-text replies |
-| `nanobot agent --logs` | Show runtime logs during chat |
-| `nanobot serve` | Start the OpenAI-compatible API |
-| `nanobot gateway` | Start the gateway |
-| `nanobot status` | Show status |
-| `nanobot provider login openai-codex` | OAuth login for providers |
-| `nanobot channels login <channel>` | Authenticate a channel interactively |
-| `nanobot channels status` | Show channel status |
+| `flyflor onboard` | Initialize config & workspace at `~/.flyflor/` |
+| `flyflor onboard --wizard` | Launch the interactive onboarding wizard |
+| `flyflor onboard -c <config> -w <workspace>` | Initialize or refresh a specific instance config and workspace |
+| `flyflor agent -m "..."` | Chat with the agent |
+| `flyflor agent -w <workspace>` | Chat against a specific workspace |
+| `flyflor agent -w <workspace> -c <config>` | Chat against a specific workspace/config |
+| `flyflor agent` | Interactive chat mode |
+| `flyflor agent --no-markdown` | Show plain-text replies |
+| `flyflor agent --logs` | Show runtime logs during chat |
+| `flyflor serve` | Start the OpenAI-compatible API |
+| `flyflor gateway` | Start the gateway |
+| `flyflor status` | Show status |
+| `flyflor provider login openai-codex` | OAuth login for providers |
+| `flyflor channels login <channel>` | Authenticate a channel interactively |
+| `flyflor channels status` | Show channel status |
 
 Interactive mode exits: `exit`, `quit`, `/exit`, `/quit`, `:q`, or `Ctrl+D`.

@@ -1,4 +1,4 @@
-"""Tests for lazy provider exports from nanobot.providers."""
+"""Tests for lazy provider exports from flyflor.providers."""
 
 from __future__ import annotations
 
@@ -7,22 +7,22 @@ import sys
 
 
 def test_importing_providers_package_is_lazy(monkeypatch) -> None:
-    monkeypatch.delitem(sys.modules, "nanobot.providers", raising=False)
-    monkeypatch.delitem(sys.modules, "nanobot.providers.anthropic_provider", raising=False)
-    monkeypatch.delitem(sys.modules, "nanobot.providers.openai_compat_provider", raising=False)
-    monkeypatch.delitem(sys.modules, "nanobot.providers.openai_codex_provider", raising=False)
-    monkeypatch.delitem(sys.modules, "nanobot.providers.github_copilot_provider", raising=False)
-    monkeypatch.delitem(sys.modules, "nanobot.providers.azure_openai_provider", raising=False)
-    monkeypatch.delitem(sys.modules, "nanobot.providers.bedrock_provider", raising=False)
+    monkeypatch.delitem(sys.modules, "flyflor.providers", raising=False)
+    monkeypatch.delitem(sys.modules, "flyflor.providers.anthropic_provider", raising=False)
+    monkeypatch.delitem(sys.modules, "flyflor.providers.openai_compat_provider", raising=False)
+    monkeypatch.delitem(sys.modules, "flyflor.providers.openai_codex_provider", raising=False)
+    monkeypatch.delitem(sys.modules, "flyflor.providers.github_copilot_provider", raising=False)
+    monkeypatch.delitem(sys.modules, "flyflor.providers.azure_openai_provider", raising=False)
+    monkeypatch.delitem(sys.modules, "flyflor.providers.bedrock_provider", raising=False)
 
-    providers = importlib.import_module("nanobot.providers")
+    providers = importlib.import_module("flyflor.providers")
 
-    assert "nanobot.providers.anthropic_provider" not in sys.modules
-    assert "nanobot.providers.openai_compat_provider" not in sys.modules
-    assert "nanobot.providers.openai_codex_provider" not in sys.modules
-    assert "nanobot.providers.github_copilot_provider" not in sys.modules
-    assert "nanobot.providers.azure_openai_provider" not in sys.modules
-    assert "nanobot.providers.bedrock_provider" not in sys.modules
+    assert "flyflor.providers.anthropic_provider" not in sys.modules
+    assert "flyflor.providers.openai_compat_provider" not in sys.modules
+    assert "flyflor.providers.openai_codex_provider" not in sys.modules
+    assert "flyflor.providers.github_copilot_provider" not in sys.modules
+    assert "flyflor.providers.azure_openai_provider" not in sys.modules
+    assert "flyflor.providers.bedrock_provider" not in sys.modules
     assert providers.__all__ == [
         "LLMProvider",
         "LLMResponse",
@@ -36,17 +36,17 @@ def test_importing_providers_package_is_lazy(monkeypatch) -> None:
 
 
 def test_explicit_provider_import_still_works(monkeypatch) -> None:
-    monkeypatch.delitem(sys.modules, "nanobot.providers", raising=False)
-    monkeypatch.delitem(sys.modules, "nanobot.providers.anthropic_provider", raising=False)
+    monkeypatch.delitem(sys.modules, "flyflor.providers", raising=False)
+    monkeypatch.delitem(sys.modules, "flyflor.providers.anthropic_provider", raising=False)
 
     namespace: dict[str, object] = {}
-    exec("from nanobot.providers import AnthropicProvider", namespace)
+    exec("from flyflor.providers import AnthropicProvider", namespace)
 
     assert namespace["AnthropicProvider"].__name__ == "AnthropicProvider"
-    assert "nanobot.providers.anthropic_provider" in sys.modules
+    assert "flyflor.providers.anthropic_provider" in sys.modules
 
 
 def test_openai_codex_supports_progress_deltas() -> None:
-    from nanobot.providers.openai_codex_provider import OpenAICodexProvider
+    from flyflor.providers.openai_codex_provider import OpenAICodexProvider
 
     assert OpenAICodexProvider.supports_progress_deltas is True

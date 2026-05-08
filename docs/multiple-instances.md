@@ -1,6 +1,6 @@
 # Multiple Instances
 
-Run multiple nanobot instances simultaneously with separate configs and runtime data. Use `--config` as the main entrypoint. Optionally pass `--workspace` during `onboard` when you want to initialize or update the saved workspace for a specific instance.
+Run multiple flyflor instances simultaneously with separate configs and runtime data. Use `--config` as the main entrypoint. Optionally pass `--workspace` during `onboard` when you want to initialize or update the saved workspace for a specific instance.
 
 ## Quick Start
 
@@ -10,50 +10,50 @@ If you want each instance to have its own dedicated workspace from the start, pa
 
 ```bash
 # Create separate instance configs and workspaces
-nanobot onboard --config ~/.nanobot-telegram/config.json --workspace ~/.nanobot-telegram/workspace
-nanobot onboard --config ~/.nanobot-discord/config.json --workspace ~/.nanobot-discord/workspace
-nanobot onboard --config ~/.nanobot-feishu/config.json --workspace ~/.nanobot-feishu/workspace
+flyflor onboard --config ~/.flyflor-telegram/config.json --workspace ~/.flyflor-telegram/workspace
+flyflor onboard --config ~/.flyflor-discord/config.json --workspace ~/.flyflor-discord/workspace
+flyflor onboard --config ~/.flyflor-feishu/config.json --workspace ~/.flyflor-feishu/workspace
 ```
 
 **Configure each instance:**
 
-Edit `~/.nanobot-telegram/config.json`, `~/.nanobot-discord/config.json`, etc. with different channel settings. The workspace you passed during `onboard` is saved into each config as that instance's default workspace.
+Edit `~/.flyflor-telegram/config.json`, `~/.flyflor-discord/config.json`, etc. with different channel settings. The workspace you passed during `onboard` is saved into each config as that instance's default workspace.
 
 **Run instances:**
 
 ```bash
 # Instance A - Telegram bot
-nanobot gateway --config ~/.nanobot-telegram/config.json
+flyflor gateway --config ~/.flyflor-telegram/config.json
 
 # Instance B - Discord bot
-nanobot gateway --config ~/.nanobot-discord/config.json
+flyflor gateway --config ~/.flyflor-discord/config.json
 
 # Instance C - Feishu bot with custom port
-nanobot gateway --config ~/.nanobot-feishu/config.json --port 18792
+flyflor gateway --config ~/.flyflor-feishu/config.json --port 18792
 ```
 
 ## Path Resolution
 
-When using `--config`, nanobot derives its runtime data directory from the config file location. The workspace still comes from `agents.defaults.workspace` unless you override it with `--workspace`.
+When using `--config`, flyflor derives its runtime data directory from the config file location. The workspace still comes from `agents.defaults.workspace` unless you override it with `--workspace`.
 
 To open a CLI session against one of these instances locally:
 
 ```bash
-nanobot agent -c ~/.nanobot-telegram/config.json -m "Hello from Telegram instance"
-nanobot agent -c ~/.nanobot-discord/config.json -m "Hello from Discord instance"
+flyflor agent -c ~/.flyflor-telegram/config.json -m "Hello from Telegram instance"
+flyflor agent -c ~/.flyflor-discord/config.json -m "Hello from Discord instance"
 
 # Optional one-off workspace override
-nanobot agent -c ~/.nanobot-telegram/config.json -w /tmp/nanobot-telegram-test
+flyflor agent -c ~/.flyflor-telegram/config.json -w /tmp/flyflor-telegram-test
 ```
 
-> `nanobot agent` starts a local CLI agent using the selected workspace/config. It does not attach to or proxy through an already running `nanobot gateway` process.
+> `flyflor agent` starts a local CLI agent using the selected workspace/config. It does not attach to or proxy through an already running `flyflor gateway` process.
 
 | Component | Resolved From | Example |
 |-----------|---------------|---------|
-| **Config** | `--config` path | `~/.nanobot-A/config.json` |
-| **Workspace** | `--workspace` or config | `~/.nanobot-A/workspace/` |
-| **Cron Jobs** | config directory | `~/.nanobot-A/cron/` |
-| **Media / runtime state** | config directory | `~/.nanobot-A/media/` |
+| **Config** | `--config` path | `~/.flyflor-A/config.json` |
+| **Workspace** | `--workspace` or config | `~/.flyflor-A/workspace/` |
+| **Cron Jobs** | config directory | `~/.flyflor-A/cron/` |
+| **Media / runtime state** | config directory | `~/.flyflor-A/media/` |
 
 ## How It Works
 
@@ -73,7 +73,7 @@ Example config:
 {
   "agents": {
     "defaults": {
-      "workspace": "~/.nanobot-telegram/workspace",
+      "workspace": "~/.flyflor-telegram/workspace",
       "model": "anthropic/claude-sonnet-4-6"
     }
   },
@@ -93,8 +93,8 @@ Example config:
 Start separate instances:
 
 ```bash
-nanobot gateway --config ~/.nanobot-telegram/config.json
-nanobot gateway --config ~/.nanobot-discord/config.json
+flyflor gateway --config ~/.flyflor-telegram/config.json
+flyflor gateway --config ~/.flyflor-discord/config.json
 ```
 
 Each gateway instance also exposes a lightweight HTTP health endpoint on
@@ -108,7 +108,7 @@ public or LAN-facing address.
 Override workspace for one-off runs when needed:
 
 ```bash
-nanobot gateway --config ~/.nanobot-telegram/config.json --workspace /tmp/nanobot-telegram-test
+flyflor gateway --config ~/.flyflor-telegram/config.json --workspace /tmp/flyflor-telegram-test
 ```
 
 ## Common Use Cases

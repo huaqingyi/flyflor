@@ -3,8 +3,8 @@
 
 import pytest
 
-from nanobot.agent.tools.filesystem import EditFileTool, ReadFileTool, WriteFileTool
-from nanobot.agent.tools import file_state
+from flyflor.agent.tools.filesystem import EditFileTool, ReadFileTool, WriteFileTool
+from flyflor.agent.tools import file_state
 
 
 # ---------------------------------------------------------------------------

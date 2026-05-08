@@ -16,7 +16,7 @@ import {
   loadSavedSecret,
   saveSecret,
 } from "@/lib/bootstrap";
-import { NanobotClient } from "@/lib/nanobot-client";
+import { FlyflorClient } from "@/lib/flyflor-client";
 import { ClientProvider, useClient } from "@/providers/ClientProvider";
 import type { ChatSummary } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -28,13 +28,14 @@ type BootState =
   | { status: "auth"; failed?: boolean }
   | {
       status: "ready";
-      client: NanobotClient;
+      client: FlyflorClient;
       token: string;
       modelName: string | null;
+      blackboardMode: string | null;
     };
 
-const SIDEBAR_STORAGE_KEY = "nanobot-webui.sidebar";
-const RESTART_STARTED_KEY = "nanobot-webui.restartStartedAt";
+const SIDEBAR_STORAGE_KEY = "flyflor-webui.sidebar";
+const RESTART_STARTED_KEY = "flyflor-webui.restartStartedAt";
 const SIDEBAR_WIDTH = 272;
 type ShellView = "chat" | "settings";
 
@@ -117,7 +118,7 @@ export default function App() {
           if (cancelled) return;
           if (secret) saveSecret(secret);
           const url = deriveWsUrl(boot.ws_path, boot.token);
-          const client = new NanobotClient({
+          const client = new FlyflorClient({
             url,
             onReauth: async () => {
               try {
@@ -134,6 +135,7 @@ export default function App() {
             client,
             token: boot.token,
             modelName: boot.model_name ?? null,
+            blackboardMode: boot.blackboard_mode ?? null,
           });
         } catch (e) {
           if (cancelled) return;
@@ -230,6 +232,7 @@ export default function App() {
       client={state.client}
       token={state.token}
       modelName={state.modelName}
+      blackboardMode={state.blackboardMode}
     >
       <Shell onModelNameChange={handleModelNameChange} onLogout={handleLogout} />
     </ClientProvider>

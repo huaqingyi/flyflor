@@ -1,28 +1,28 @@
 {
   "app": {
-    "brand": "nanobot",
+    "brand": "flyflor",
     "loading": {
-      "connecting": "nanobot에 연결 중…",
-      "boot": "nanobot 불러오는 중…"
+      "connecting": "flyflor에 연결 중…",
+      "boot": "flyflor 불러오는 중…"
     },
     "error": {
-      "title": "nanobot에 연결할 수 없습니다",
-      "gatewayHint": "gateway(`nanobot gateway`)가 실행 중인지, 그리고 이 페이지가 같은 머신에서 열려 있는지 확인하세요."
+      "title": "flyflor에 연결할 수 없습니다",
+      "gatewayHint": "gateway(`flyflor gateway`)가 실행 중인지, 그리고 이 페이지가 같은 머신에서 열려 있는지 확인하세요."
     },
     "system": {
       "section": "시스템",
-      "restartHint": "런타임 변경 사항을 적용하려면 nanobot을 다시 시작하세요.",
-      "restart": "nanobot 다시 시작"
+      "restartHint": "런타임 변경 사항을 적용하려면 flyflor을 다시 시작하세요.",
+      "restart": "flyflor 다시 시작"
     },
     "restart": {
       "completed": "{{seconds}}초 만에 다시 시작되었습니다."
     },
     "documentTitle": {
-      "base": "nanobot",
-      "chat": "{{title}} · nanobot"
+      "base": "flyflor",
+      "chat": "{{title}} · flyflor"
     },
     "meta": {
-      "description": "nanobot 웹 UI — nanobot 작업공간과 대화하세요."
+      "description": "flyflor 웹 UI — flyflor 작업공간과 대화하세요."
     }
   },
   "sidebar": {
@@ -92,7 +92,7 @@
       "imageQuickActions": {
         "icon": {
           "title": "앱 아이콘 디자인",
-          "prompt": "nanobot을 위한 깔끔한 1:1 앱 아이콘을 생성해 주세요. 친근한 로봇, 단순한 벡터 스타일, 부드러운 파란색과 흰색 팔레트, 텍스트 없음."
+          "prompt": "flyflor을 위한 깔끔한 1:1 앱 아이콘을 생성해 주세요. 친근한 로봇, 단순한 벡터 스타일, 부드러운 파란색과 흰색 팔레트, 텍스트 없음."
         },
         "sticker": {
           "title": "스티커 만들기",
@@ -171,7 +171,7 @@
             "description": "이 채팅에서 실행 중인 agent 턴을 취소합니다."
           },
           "restart": {
-            "title": "nanobot 재시작",
+            "title": "flyflor 재시작",
             "description": "bot 프로세스를 제자리에서 재시작합니다."
           },
           "status": {

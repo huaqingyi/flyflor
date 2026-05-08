@@ -1,28 +1,28 @@
 {
   "app": {
-    "brand": "nanobot",
+    "brand": "flyflor",
     "loading": {
-      "connecting": "Conectando con nanobot…",
-      "boot": "Cargando nanobot…"
+      "connecting": "Conectando con flyflor…",
+      "boot": "Cargando flyflor…"
     },
     "error": {
-      "title": "No se pudo conectar con nanobot",
-      "gatewayHint": "Asegúrate de que la gateway esté en ejecución (`nanobot gateway`) y de que esta página esté abierta en la misma máquina."
+      "title": "No se pudo conectar con flyflor",
+      "gatewayHint": "Asegúrate de que la gateway esté en ejecución (`flyflor gateway`) y de que esta página esté abierta en la misma máquina."
     },
     "system": {
       "section": "Sistema",
-      "restartHint": "Reinicia nanobot para aplicar los cambios de ejecución.",
-      "restart": "Reiniciar nanobot"
+      "restartHint": "Reinicia flyflor para aplicar los cambios de ejecución.",
+      "restart": "Reiniciar flyflor"
     },
     "restart": {
       "completed": "Reinicio completado en {{seconds}} s."
     },
     "documentTitle": {
-      "base": "nanobot",
-      "chat": "{{title}} · nanobot"
+      "base": "flyflor",
+      "chat": "{{title}} · flyflor"
     },
     "meta": {
-      "description": "Interfaz web de nanobot: conversa con tu espacio de trabajo de nanobot."
+      "description": "Interfaz web de flyflor: conversa con tu espacio de trabajo de flyflor."
     }
   },
   "sidebar": {
@@ -92,11 +92,11 @@
       "imageQuickActions": {
         "icon": {
           "title": "Diseñar un icono de app",
-          "prompt": "Genera un icono de app 1:1 limpio para nanobot: robot amigable, estilo vectorial simple, paleta suave azul y blanca, sin texto."
+          "prompt": "Genera un icono 1:1 para Flyflor: asistente de pelo blanco con flor y cristales, brillo violeta y cian, sin texto."
         },
         "sticker": {
           "title": "Crear un sticker",
-          "prompt": "Genera una imagen estilo sticker de un pequeño asistente robot, con fondo de apariencia transparente, expresivo y divertido."
+          "prompt": "Genera un sticker de Flyflor con pelo blanco, adorno floral y ojos violeta, fondo de apariencia transparente."
         },
         "poster": {
           "title": "Crear un póster",
@@ -171,7 +171,7 @@
             "description": "Cancela el turno activo del agent en este chat."
           },
           "restart": {
-            "title": "Reiniciar nanobot",
+            "title": "Reiniciar flyflor",
             "description": "Reinicia el proceso del bot en el mismo lugar."
           },
           "status": {

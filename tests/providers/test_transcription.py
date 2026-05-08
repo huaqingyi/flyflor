@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 
-from nanobot.providers.transcription import GroqTranscriptionProvider, OpenAITranscriptionProvider
+from flyflor.providers.transcription import GroqTranscriptionProvider, OpenAITranscriptionProvider
 
 
 @pytest.fixture

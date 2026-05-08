@@ -1,28 +1,28 @@
 {
   "app": {
-    "brand": "nanobot",
+    "brand": "flyflor",
     "loading": {
-      "connecting": "正在连接 nanobot…",
-      "boot": "正在加载 nanobot…"
+      "connecting": "正在连接 flyflor…",
+      "boot": "正在加载 flyflor…"
     },
     "error": {
-      "title": "无法连接到 nanobot",
-      "gatewayHint": "请确认 gateway 已启动（`nanobot gateway`），并且当前页面与 gateway 运行在同一台机器上。"
+      "title": "无法连接到 flyflor",
+      "gatewayHint": "请确认 gateway 已启动（`flyflor gateway`），并且当前页面与 gateway 运行在同一台机器上。"
     },
     "system": {
       "section": "系统",
-      "restartHint": "重启 nanobot 以应用运行时更改。",
-      "restart": "重启 nanobot"
+      "restartHint": "重启 flyflor 以应用运行时更改。",
+      "restart": "重启 flyflor"
     },
     "restart": {
       "completed": "重启已完成，用时 {{seconds}} 秒。"
     },
     "documentTitle": {
-      "base": "nanobot",
-      "chat": "{{title}} · nanobot"
+      "base": "flyflor",
+      "chat": "{{title}} · flyflor"
     },
     "meta": {
-      "description": "nanobot Web UI —— 与你的 nanobot 工作区对话。"
+      "description": "flyflor Web UI —— 与你的 flyflor 工作区对话。"
     }
   },
   "sidebar": {
@@ -73,6 +73,10 @@
   },
   "thread": {
     "loadingConversation": "正在加载对话…",
+    "mode": {
+      "blackboard": "黑板讨论",
+      "description": "黑板讨论模式已开启。回复会先展示黑板和讨论内容，再给出答复。"
+    },
     "empty": {
       "greeting": "我可以帮你做什么？",
       "quickActions": {
@@ -104,11 +108,11 @@
       "imageQuickActions": {
         "icon": {
           "title": "设计应用图标",
-          "prompt": "生成一个干净的 1:1 nanobot 应用图标：友好的机器人，简洁矢量风格，蓝白柔和配色，不要文字。"
+          "prompt": "生成一个干净的 1:1 Flyflor 飞花应用图标：白发花晶智能体，紫粉与青蓝光感，不要文字。"
         },
         "sticker": {
           "title": "制作贴纸",
-          "prompt": "生成一张可爱的贴纸风小机器人助手图片，背景像透明贴纸，表情活泼有趣。"
+          "prompt": "生成一张贴纸风飞花头像：白发、花饰、紫色眼睛，背景像透明贴纸。"
         },
         "poster": {
           "title": "创建海报",
@@ -181,7 +185,7 @@
             "description": "取消这个对话中正在运行的 agent 回合。"
           },
           "restart": {
-            "title": "重启 nanobot",
+            "title": "重启 flyflor",
             "description": "原地重启 bot 进程。"
           },
           "status": {

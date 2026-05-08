@@ -3,15 +3,15 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from nanobot.agent.loop import AgentLoop
-from nanobot.agent.runner import AgentRunner, AgentRunSpec
-from nanobot.agent.tools.ask import AskUserInterrupt, AskUserTool
-from nanobot.agent.tools.base import Tool, tool_parameters
-from nanobot.agent.tools.registry import ToolRegistry
-from nanobot.agent.tools.schema import tool_parameters_schema
-from nanobot.bus.events import InboundMessage
-from nanobot.bus.queue import MessageBus
-from nanobot.providers.base import GenerationSettings, LLMResponse, ToolCallRequest
+from flyflor.agent.loop import AgentLoop
+from flyflor.agent.runner import AgentRunner, AgentRunSpec
+from flyflor.agent.tools.ask import AskUserInterrupt, AskUserTool
+from flyflor.agent.tools.base import Tool, tool_parameters
+from flyflor.agent.tools.registry import ToolRegistry
+from flyflor.agent.tools.schema import tool_parameters_schema
+from flyflor.bus.events import InboundMessage
+from flyflor.bus.queue import MessageBus
+from flyflor.providers.base import GenerationSettings, LLMResponse, ToolCallRequest
 
 
 def _make_provider(chat_with_retry):

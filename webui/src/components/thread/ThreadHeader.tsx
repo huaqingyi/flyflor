@@ -1,4 +1,4 @@
-import { Menu, Moon, PanelLeftOpen, Settings, Sun } from "lucide-react";
+import { Menu, MessagesSquare, Moon, PanelLeftOpen, Settings, Sun } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ interface ThreadHeaderProps {
   theme: "light" | "dark";
   onToggleTheme: () => void;
   onOpenSettings: () => void;
+  modeLabel?: string | null;
   hideSidebarToggleOnDesktop?: boolean;
   minimal?: boolean;
 }
@@ -20,6 +21,7 @@ export function ThreadHeader({
   theme,
   onToggleTheme,
   onOpenSettings,
+  modeLabel = null,
   hideSidebarToggleOnDesktop = false,
   minimal = false,
 }: ThreadHeaderProps) {
@@ -39,6 +41,7 @@ export function ThreadHeader({
         >
           <Menu className="h-3.5 w-3.5" />
         </Button>
+        {modeLabel ? <ModeBadge label={modeLabel} /> : null}
         <div className="flex items-center gap-0.5">
           <Button
             variant="ghost"
@@ -85,6 +88,7 @@ export function ThreadHeader({
         <div className="flex min-w-0 items-center rounded-md px-1.5 py-1 text-[12px] font-medium text-muted-foreground">
           <span className="max-w-[min(60vw,32rem)] truncate">{title}</span>
         </div>
+        {modeLabel ? <ModeBadge label={modeLabel} /> : null}
       </div>
 
       <div className="flex items-center gap-0.5">
@@ -113,6 +117,15 @@ export function ThreadHeader({
       </div>
 
       <div aria-hidden className="pointer-events-none absolute inset-x-0 top-full h-4" />
+    </div>
+  );
+}
+
+function ModeBadge({ label }: { label: string }) {
+  return (
+    <div className="inline-flex h-7 max-w-[12rem] items-center gap-1.5 rounded-full border border-border/60 bg-muted/45 px-2.5 text-[11px] font-medium text-muted-foreground">
+      <MessagesSquare className="h-3.5 w-3.5 flex-none text-[#53c59d]" aria-hidden />
+      <span className="truncate">{label}</span>
     </div>
   );
 }

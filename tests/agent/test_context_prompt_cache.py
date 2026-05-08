@@ -8,7 +8,7 @@ from importlib.resources import files as pkg_files
 from pathlib import Path
 import datetime as datetime_module
 
-from nanobot.agent.context import ContextBuilder
+from flyflor.agent.context import ContextBuilder
 
 
 class _FakeDatetime(real_datetime):
@@ -26,7 +26,7 @@ def _make_workspace(tmp_path: Path) -> Path:
 
 
 def test_bootstrap_files_are_backed_by_templates() -> None:
-    template_dir = pkg_files("nanobot") / "templates"
+    template_dir = pkg_files("flyflor") / "templates"
 
     for filename in ContextBuilder.BOOTSTRAP_FILES:
         assert (template_dir / filename).is_file(), f"missing bootstrap template: {filename}"
@@ -59,6 +59,28 @@ def test_system_prompt_reflects_current_dream_memory_contract(tmp_path) -> None:
     assert "do not edit directly" in prompt
     assert "memory/HISTORY.md" not in prompt
     assert "write important facts here" not in prompt
+
+
+def test_blackboard_discussion_mode_is_default_visible_context(tmp_path) -> None:
+    workspace = _make_workspace(tmp_path)
+    builder = ContextBuilder(workspace)
+
+    prompt = builder.build_system_prompt(channel="websocket")
+
+    assert "Blackboard Discussion Mode" in prompt
+    assert "## 黑板" in prompt
+    assert "## 讨论" in prompt
+    assert "## 答复" in prompt
+
+
+def test_blackboard_discussion_context_can_be_disabled(tmp_path) -> None:
+    workspace = _make_workspace(tmp_path)
+    builder = ContextBuilder(workspace, blackboard_enabled=False)
+
+    prompt = builder.build_system_prompt(channel="websocket")
+
+    assert "Blackboard Discussion Mode" not in prompt
+    assert "## 黑板" not in prompt
 
 
 def test_runtime_context_is_separate_untrusted_user_message(tmp_path) -> None:
@@ -200,7 +222,7 @@ def test_partial_dream_processing_shows_only_remainder(tmp_path) -> None:
 
 def test_execution_rules_in_system_prompt(tmp_path) -> None:
     """Execution rules should appear in the system prompt via default SOUL.md."""
-    from nanobot.utils.helpers import sync_workspace_templates
+    from flyflor.utils.helpers import sync_workspace_templates
 
     workspace = _make_workspace(tmp_path)
     sync_workspace_templates(workspace, silent=True)
@@ -219,7 +241,7 @@ def test_identity_has_no_behavioral_instructions(tmp_path) -> None:
     builder = ContextBuilder(workspace)
 
     identity = builder._get_identity(channel=None)
-    assert "You are nanobot" not in identity
+    assert "You are flyflor" not in identity
     assert "Act, don't narrate" not in identity
     assert "Execution Rules" not in identity
 
@@ -237,7 +259,7 @@ def test_system_prompt_does_not_warn_about_message_time_markers(tmp_path) -> Non
 
 def test_default_soul_template_contains_execution_rules() -> None:
     """Default SOUL.md template must contain execution rules with act/plan layering."""
-    soul = (pkg_files("nanobot") / "templates" / "SOUL.md").read_text(encoding="utf-8")
+    soul = (pkg_files("flyflor") / "templates" / "SOUL.md").read_text(encoding="utf-8")
     assert "## Execution Rules" in soul
     assert "single-step tasks" in soul
     assert "multi-step tasks" in soul
@@ -326,7 +348,7 @@ def test_always_skills_excluded_from_skills_index(tmp_path) -> None:
 def test_template_memory_md_is_skipped(tmp_path) -> None:
     """MEMORY.md matching the bundled template should not inject the Memory section."""
     workspace = _make_workspace(tmp_path)
-    from nanobot.utils.helpers import sync_workspace_templates
+    from flyflor.utils.helpers import sync_workspace_templates
     sync_workspace_templates(workspace, silent=True)
 
     builder = ContextBuilder(workspace)
@@ -337,13 +359,13 @@ def test_template_memory_md_is_skipped(tmp_path) -> None:
     # also contains "# Memory" but is followed by "## Structure", not
     # "## Long-term Memory".
     assert "# Memory\n\n## Long-term Memory" not in prompt
-    assert "This file is automatically updated by nanobot" not in prompt
+    assert "This file is automatically updated by flyflor" not in prompt
 
 
 def test_customized_memory_md_is_injected(tmp_path) -> None:
     """A Dream-populated MEMORY.md should be injected normally."""
     workspace = _make_workspace(tmp_path)
-    from nanobot.utils.helpers import sync_workspace_templates
+    from flyflor.utils.helpers import sync_workspace_templates
     sync_workspace_templates(workspace, silent=True)
 
     (workspace / "memory" / "MEMORY.md").write_text(

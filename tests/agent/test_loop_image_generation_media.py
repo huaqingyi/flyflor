@@ -6,13 +6,13 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from nanobot.agent.loop import AgentLoop
-from nanobot.bus.events import InboundMessage
-from nanobot.bus.queue import MessageBus
-from nanobot.config.loader import set_config_path
-from nanobot.config.schema import ImageGenerationToolConfig, ProviderConfig, ToolsConfig
-from nanobot.providers.base import LLMResponse, ToolCallRequest
-from nanobot.providers.image_generation import GeneratedImageResponse
+from flyflor.agent.loop import AgentLoop
+from flyflor.bus.events import InboundMessage
+from flyflor.bus.queue import MessageBus
+from flyflor.config.loader import set_config_path
+from flyflor.config.schema import ImageGenerationToolConfig, ProviderConfig, ToolsConfig
+from flyflor.providers.base import LLMResponse, ToolCallRequest
+from flyflor.providers.image_generation import GeneratedImageResponse
 
 PNG_DATA_URL = (
     "data:image/png;base64,"
@@ -35,7 +35,7 @@ async def test_generated_image_media_is_attached_to_final_assistant_message(
 ) -> None:
     set_config_path(tmp_path / "config.json")
     monkeypatch.setattr(
-        "nanobot.agent.tools.image_generation.OpenRouterImageGenerationClient",
+        "flyflor.agent.tools.image_generation.OpenRouterImageGenerationClient",
         FakeImageClient,
     )
     provider = MagicMock()

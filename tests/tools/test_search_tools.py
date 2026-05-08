@@ -10,10 +10,10 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from nanobot.agent.loop import AgentLoop
-from nanobot.agent.subagent import SubagentManager, SubagentStatus
-from nanobot.agent.tools.search import GlobTool, GrepTool
-from nanobot.bus.queue import MessageBus
+from flyflor.agent.loop import AgentLoop
+from flyflor.agent.subagent import SubagentManager, SubagentStatus
+from flyflor.agent.tools.search import GlobTool, GrepTool
+from flyflor.bus.queue import MessageBus
 
 
 @pytest.mark.asyncio

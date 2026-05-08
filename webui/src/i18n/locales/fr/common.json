@@ -1,28 +1,28 @@
 {
   "app": {
-    "brand": "nanobot",
+    "brand": "flyflor",
     "loading": {
-      "connecting": "Connexion à nanobot…",
-      "boot": "Chargement de nanobot…"
+      "connecting": "Connexion à flyflor…",
+      "boot": "Chargement de flyflor…"
     },
     "error": {
-      "title": "Impossible de joindre nanobot",
-      "gatewayHint": "Assurez-vous que la gateway est en cours d’exécution (`nanobot gateway`) et que cette page est ouverte sur la même machine."
+      "title": "Impossible de joindre flyflor",
+      "gatewayHint": "Assurez-vous que la gateway est en cours d’exécution (`flyflor gateway`) et que cette page est ouverte sur la même machine."
     },
     "system": {
       "section": "Système",
-      "restartHint": "Redémarrez nanobot pour appliquer les changements d’exécution.",
-      "restart": "Redémarrer nanobot"
+      "restartHint": "Redémarrez flyflor pour appliquer les changements d’exécution.",
+      "restart": "Redémarrer flyflor"
     },
     "restart": {
       "completed": "Redémarrage terminé en {{seconds}} s."
     },
     "documentTitle": {
-      "base": "nanobot",
-      "chat": "{{title}} · nanobot"
+      "base": "flyflor",
+      "chat": "{{title}} · flyflor"
     },
     "meta": {
-      "description": "Interface web nanobot — discutez avec votre espace de travail nanobot."
+      "description": "Interface web flyflor — discutez avec votre espace de travail flyflor."
     }
   },
   "sidebar": {
@@ -92,11 +92,11 @@
       "imageQuickActions": {
         "icon": {
           "title": "Créer une icône d’app",
-          "prompt": "Générez une icône d’application 1:1 propre pour nanobot : robot sympathique, style vectoriel simple, palette douce bleu et blanc, sans texte."
+          "prompt": "Générez une icône 1:1 pour Flyflor : assistante aux cheveux blancs avec fleur et cristaux, lueur violette et cyan, sans texte."
         },
         "sticker": {
           "title": "Créer un sticker",
-          "prompt": "Générez une image façon sticker d’un petit assistant robot, avec un fond d’apparence transparente, expressive et ludique."
+          "prompt": "Générez un sticker Flyflor avec cheveux blancs, ornement floral et yeux violets, fond d’apparence transparente."
         },
         "poster": {
           "title": "Créer une affiche",
@@ -171,7 +171,7 @@
             "description": "Annuler le tour agent actif pour cette discussion."
           },
           "restart": {
-            "title": "Redémarrer nanobot",
+            "title": "Redémarrer flyflor",
             "description": "Redémarrer le processus du bot sur place."
           },
           "status": {

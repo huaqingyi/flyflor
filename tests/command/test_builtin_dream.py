@@ -4,10 +4,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from nanobot.bus.events import InboundMessage
-from nanobot.command.builtin import cmd_dream_log, cmd_dream_restore
-from nanobot.command.router import CommandContext
-from nanobot.utils.gitstore import CommitInfo
+from flyflor.bus.events import InboundMessage
+from flyflor.command.builtin import cmd_dream_log, cmd_dream_restore
+from flyflor.command.router import CommandContext
+from flyflor.utils.gitstore import CommitInfo
 
 
 class _FakeStore:

@@ -1,28 +1,28 @@
 {
   "app": {
-    "brand": "nanobot",
+    "brand": "flyflor",
     "loading": {
-      "connecting": "正在連線到 nanobot…",
-      "boot": "正在載入 nanobot…"
+      "connecting": "正在連線到 flyflor…",
+      "boot": "正在載入 flyflor…"
     },
     "error": {
-      "title": "無法連線到 nanobot",
-      "gatewayHint": "請確認 gateway 已啟動（`nanobot gateway`），並且目前頁面與 gateway 在同一台機器上開啟。"
+      "title": "無法連線到 flyflor",
+      "gatewayHint": "請確認 gateway 已啟動（`flyflor gateway`），並且目前頁面與 gateway 在同一台機器上開啟。"
     },
     "system": {
       "section": "系統",
-      "restartHint": "重新啟動 nanobot 以套用執行階段變更。",
-      "restart": "重新啟動 nanobot"
+      "restartHint": "重新啟動 flyflor 以套用執行階段變更。",
+      "restart": "重新啟動 flyflor"
     },
     "restart": {
       "completed": "重新啟動已完成，耗時 {{seconds}} 秒。"
     },
     "documentTitle": {
-      "base": "nanobot",
-      "chat": "{{title}} · nanobot"
+      "base": "flyflor",
+      "chat": "{{title}} · flyflor"
     },
     "meta": {
-      "description": "nanobot Web UI —— 與你的 nanobot 工作區對話。"
+      "description": "flyflor Web UI —— 與你的 flyflor 工作區對話。"
     }
   },
   "sidebar": {
@@ -92,11 +92,11 @@
       "imageQuickActions": {
         "icon": {
           "title": "設計應用程式圖示",
-          "prompt": "生成一個乾淨的 1:1 nanobot 應用程式圖示：友善的機器人、簡潔向量風格、柔和藍白配色，不要文字。"
+          "prompt": "生成一個乾淨的 1:1 Flyflor 飛花應用程式圖示：白髮花晶智能體、紫粉與青藍光感，不要文字。"
         },
         "sticker": {
           "title": "製作貼圖",
-          "prompt": "生成一張可愛貼圖風格的小型機器人助理圖片，背景像透明貼紙，表情活潑有趣。"
+          "prompt": "生成一張貼圖風飛花頭像：白髮、花飾、紫色眼睛，背景像透明貼紙。"
         },
         "poster": {
           "title": "建立海報",
@@ -171,7 +171,7 @@
             "description": "取消這個對話中正在執行的 agent 回合。"
           },
           "restart": {
-            "title": "重新啟動 nanobot",
+            "title": "重新啟動 flyflor",
             "description": "原地重新啟動 bot 進程。"
           },
           "status": {

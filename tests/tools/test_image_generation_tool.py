@@ -6,10 +6,10 @@ from typing import Any
 
 import pytest
 
-from nanobot.agent.tools.image_generation import ImageGenerationTool
-from nanobot.config.loader import set_config_path
-from nanobot.config.schema import ImageGenerationToolConfig, ProviderConfig
-from nanobot.providers.image_generation import GeneratedImageResponse
+from flyflor.agent.tools.image_generation import ImageGenerationTool
+from flyflor.config.loader import set_config_path
+from flyflor.config.schema import ImageGenerationToolConfig, ProviderConfig
+from flyflor.providers.image_generation import GeneratedImageResponse
 
 PNG_BYTES = (
     b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01"
@@ -44,7 +44,7 @@ async def test_generate_image_tool_stores_artifact_and_source_images(
     set_config_path(tmp_path / "config.json")
     FakeImageClient.instances = []
     monkeypatch.setattr(
-        "nanobot.agent.tools.image_generation.OpenRouterImageGenerationClient",
+        "flyflor.agent.tools.image_generation.OpenRouterImageGenerationClient",
         FakeImageClient,
     )
     ref = tmp_path / "ref.png"
@@ -98,7 +98,7 @@ async def test_generate_image_tool_selects_aihubmix_provider(
     set_config_path(tmp_path / "config.json")
     FakeImageClient.instances = []
     monkeypatch.setattr(
-        "nanobot.agent.tools.image_generation.AIHubMixImageGenerationClient",
+        "flyflor.agent.tools.image_generation.AIHubMixImageGenerationClient",
         FakeImageClient,
     )
     tool = ImageGenerationTool(

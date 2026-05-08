@@ -1,6 +1,6 @@
 import type { BootstrapResponse } from "./types";
 
-const SECRET_STORAGE_KEY = "nanobot-webui.bootstrap-secret";
+const SECRET_STORAGE_KEY = "flyflor-webui.bootstrap-secret";
 
 /** Read a previously saved bootstrap secret from localStorage. */
 export function loadSavedSecret(): string {
@@ -40,7 +40,7 @@ export async function fetchBootstrap(
 ): Promise<BootstrapResponse> {
   const headers: Record<string, string> = {};
   if (secret) {
-    headers["X-Nanobot-Auth"] = secret;
+    headers["X-Flyflor-Auth"] = secret;
   }
   const res = await fetch(`${baseUrl}/webui/bootstrap`, {
     method: "GET",

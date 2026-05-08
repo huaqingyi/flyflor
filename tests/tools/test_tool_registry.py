@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from nanobot.agent.tools.base import Tool
-from nanobot.agent.tools.registry import ToolRegistry
+from flyflor.agent.tools.base import Tool
+from flyflor.agent.tools.registry import ToolRegistry
 
 
 class _FakeTool(Tool):

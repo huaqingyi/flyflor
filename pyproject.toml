@@ -1,13 +1,12 @@
 [project]
-name = "nanobot-ai"
+name = "flyflor-ai"
 version = "0.1.5.post3"
 description = "A lightweight personal AI assistant framework"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [
-    {name = "Xubin Ren"},
-    {name = "the nanobot contributors"}
+    {name = "the Flyflor contributors"}
 ]
 keywords = ["ai", "agent", "chatbot"]
 classifiers = [
@@ -107,7 +106,7 @@ dev = [
 ]
 
 [project.scripts]
-nanobot = "nanobot.cli.commands:app"
+flyflor = "flyflor.cli.commands:app"
 
 [build-system]
 requires = ["hatchling"]
@@ -118,24 +117,24 @@ allow-direct-references = true
 
 [tool.hatch.build]
 include = [
-    "nanobot/**/*.py",
-    "nanobot/templates/**/*.md",
-    "nanobot/skills/**/*.md",
-    "nanobot/skills/**/*.sh",
+    "flyflor/**/*.py",
+    "flyflor/templates/**/*.md",
+    "flyflor/skills/**/*.md",
+    "flyflor/skills/**/*.sh",
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["nanobot"]
+packages = ["flyflor"]
 
 [tool.hatch.build.targets.wheel.sources]
-"nanobot" = "nanobot"
+"flyflor" = "flyflor"
 
 [tool.hatch.build.targets.wheel.force-include]
-"bridge" = "nanobot/bridge"
+"bridge" = "flyflor/bridge"
 
 [tool.hatch.build.targets.sdist]
 include = [
-    "nanobot/",
+    "flyflor/",
     "bridge/",
     "README.md",
     "LICENSE",
@@ -156,7 +155,7 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 
 [tool.coverage.run]
-source = ["nanobot"]
+source = ["flyflor"]
 omit = ["tests/*", "**/tests/*"]
 
 [tool.coverage.report]

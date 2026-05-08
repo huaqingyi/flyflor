@@ -18,7 +18,7 @@ import { ThreadComposer } from "@/components/thread/ThreadComposer";
 import { ThreadHeader } from "@/components/thread/ThreadHeader";
 import { StreamErrorNotice } from "@/components/thread/StreamErrorNotice";
 import { ThreadViewport } from "@/components/thread/ThreadViewport";
-import { useNanobotStream, type SendImage, type SendOptions } from "@/hooks/useNanobotStream";
+import { useFlyflorStream, type SendImage, type SendOptions } from "@/hooks/useFlyflorStream";
 import { useSessionHistory } from "@/hooks/useSessions";
 import { listSlashCommands } from "@/lib/api";
 import type { ChatSummary, SlashCommand, UIMessage } from "@/lib/types";
@@ -85,7 +85,7 @@ export function ThreadShell({
   const chatId = session?.chatId ?? null;
   const historyKey = session?.key ?? null;
   const { messages: historical, loading, hasPendingToolCalls } = useSessionHistory(historyKey);
-  const { modelName, token } = useClient();
+  const { modelName, token, blackboardMode } = useClient();
   const [booting, setBooting] = useState(false);
   const [slashCommands, setSlashCommands] = useState<SlashCommand[]>([]);
   const [heroImageMode, setHeroImageMode] = useState(false);
@@ -105,7 +105,7 @@ export function ThreadShell({
     setMessages,
     streamError,
     dismissStreamError,
-  } = useNanobotStream(chatId, initial, hasPendingToolCalls, onTurnEnd);
+  } = useFlyflorStream(chatId, initial, hasPendingToolCalls, onTurnEnd);
   const showHeroComposer = messages.length === 0 && !loading;
   const pendingAsk = useMemo(() => {
     for (let index = messages.length - 1; index >= 0; index -= 1) {
@@ -214,6 +214,9 @@ export function ThreadShell({
   );
 
   const quickActionItems = heroImageMode ? IMAGE_QUICK_ACTION_KEYS : QUICK_ACTION_KEYS;
+  const modeLabel = blackboardMode === "blackboard"
+    ? t("thread.mode.blackboard", { defaultValue: "Blackboard discussion" })
+    : null;
   const quickActionPrefix = heroImageMode
     ? "thread.empty.imageQuickActions"
     : "thread.empty.quickActions";
@@ -302,6 +305,13 @@ export function ThreadShell({
       <h1 className="text-balance text-[40px] font-normal leading-tight tracking-[-0.045em] text-foreground sm:text-[48px]">
         {t("thread.empty.greeting")}
       </h1>
+      {modeLabel ? (
+        <p className="mt-3 max-w-[30rem] text-balance text-sm text-muted-foreground">
+          {t("thread.mode.description", {
+            defaultValue: "Blackboard discussion mode is on. Replies show the board and discussion before the final answer.",
+          })}
+        </p>
+      ) : null}
     </div>
   );
 
@@ -313,6 +323,7 @@ export function ThreadShell({
         theme={theme}
         onToggleTheme={onToggleTheme}
         onOpenSettings={onOpenSettings}
+        modeLabel={modeLabel}
         hideSidebarToggleOnDesktop={hideSidebarToggleOnDesktop}
         minimal={!session && !loading}
       />

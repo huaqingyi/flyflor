@@ -35,7 +35,7 @@ import {
   MAX_IMAGES_PER_MESSAGE,
 } from "@/hooks/useAttachedImages";
 import { useClipboardAndDrop } from "@/hooks/useClipboardAndDrop";
-import type { SendImage, SendOptions } from "@/hooks/useNanobotStream";
+import type { SendImage, SendOptions } from "@/hooks/useFlyflorStream";
 import type { SlashCommand } from "@/lib/types";
 import { cn } from "@/lib/utils";
 

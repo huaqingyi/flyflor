@@ -92,7 +92,7 @@ describe("webui API helpers", () => {
           },
           {
             command: "/restart",
-            title: "Restart nanobot",
+            title: "Restart flyflor",
             description: "Restart the bot process.",
             icon: "rotate-cw",
           },

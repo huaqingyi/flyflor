@@ -65,6 +65,7 @@ export interface BootstrapResponse {
   ws_path: string;
   expires_in: number;
   model_name?: string | null;
+  blackboard_mode?: string | null;
 }
 
 export interface SettingsPayload {
@@ -73,6 +74,7 @@ export interface SettingsPayload {
     provider: string;
     resolved_provider: string | null;
     has_api_key: boolean;
+    blackboard_mode?: string | null;
   };
   providers: Array<{
     name: string;

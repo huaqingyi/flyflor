@@ -4,11 +4,11 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from nanobot.bus.events import OutboundMessage
-from nanobot.bus.queue import MessageBus
-from nanobot.channels.base import BaseChannel
-from nanobot.channels.manager import ChannelManager
-from nanobot.config.schema import Config
+from flyflor.bus.events import OutboundMessage
+from flyflor.bus.queue import MessageBus
+from flyflor.channels.base import BaseChannel
+from flyflor.channels.manager import ChannelManager
+from flyflor.config.schema import Config
 
 
 class MockChannel(BaseChannel):

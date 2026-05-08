@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from nanobot.config.loader import set_config_path
-from nanobot.utils.artifacts import (
+from flyflor.config.loader import set_config_path
+from flyflor.utils.artifacts import (
     ArtifactError,
     decode_image_data_url,
     generated_image_paths_from_messages,
