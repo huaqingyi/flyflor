@@ -1,365 +1,604 @@
-# Flyflor
+# flyflor
 
-Flyflor is an intelligent-agent runtime cockpit.
+English: [README.en.md](README.en.md)
 
-It is built for work that should not disappear behind a spinner: planning,
-tool use, review, memory lookup, reflection, and final delivery are all first
-class runtime surfaces. The user sees a calm conversation, while Flyflor keeps a
-readable blackboard of how the agent is thinking, checking itself, and deciding
-when it needs help.
+## Flyflor（飞花）智能体运行时
 
-## What Flyflor Is
+`flyflor` 是面向个人与多渠道工作流的可观察智能体运行时。它以工具调用、会话记忆、定时任务和渠道网关为主干，目标是让飞花在聊天、自动化和长期上下文中保持一致、可维护、可扩展。
 
-Flyflor is not just a chat client. It is a visible agent runtime with:
+- Rust 实现：稳定的并发执行、清晰的部署路径和工程化体验
+- 智能体身份：Flyflor / 飞花，冷静、精确、直接，具备长期记忆与工具协作能力
+- 运行时定位：可观察的 Agent loop，而不是单纯聊天客户端
+- 扩展方向：反思、三层记忆、黑板协作、复杂度路由和多渠道网关
 
-- a direct agent path for simple questions
-- a blackboard workbench for complex work
-- a Sandbox Box for `/yolo`, tool risk decisions, and approval handoff
-- planner and reviewer roles for decomposition and risk checks
-- session isolation across WebUI, TUI, CLI, and chat channels
-- Markdown identity and methodology memory
-- SQLite/Qdrant-backed runtime memory paths
-- tool checkpoints, runtime events, and resumable context
-- self-update support through GitHub releases
+## 架构方向
 
-The product principle is simple: **ordinary questions should feel immediate;
-complex work should become inspectable.**
+设计细节见 [DESIGN.md](DESIGN.md)。当前 Rust 实现保留轻量核心，并逐步对齐 Flyflor 设计中的记忆、反思、黑板协作和运行时观测能力。
 
-## Agent Architecture
+## ✨ 特性
 
-```mermaid
-flowchart TD
-  User["User / WebUI / TUI / channels"] --> Dispatch["Flyflor dispatcher"]
-  Dispatch --> Complexity["Complexity assessment"]
-  Complexity -->|simple| Direct["Direct agent loop"]
-  Complexity -->|gray zone| Watch["Direct with runtime watch"]
-  Watch -->|tool churn / repeated failure| Blackboard
-  Complexity -->|complex| Blackboard["Blackboard Workbench"]
+- Agent 主循环：LLM 调用、工具调用、会话上下文、错误恢复
+- 配置系统：`~/.flyflor/config.json`，支持 provider 自动匹配
+- 会话与记忆：JSONL 会话持久化 + 二层记忆（`memory/MEMORY.md` + `memory/HISTORY.md`）
+- 多模态输入：会将入站图片附件转换为 OpenAI 兼容的 `image_url` 内容片段
+- 工具系统：
+  - `read_file` / `write_file` / `edit_file` / `list_dir`
+  - `exec`
+  - `web_search` / `web_fetch` / `http_request`
+  - `message` / `spawn` / `cron` / `sessions_list` / `sessions_history` / `sessions_send`
+  - `spawn` 子代理具备当前时间上下文、`edit_file` 能力与 `skills/` 路径提示
+- 定时任务与心跳：
+  - `CronService`（add/list/remove/enable/run + 持久化）
+  - `HeartbeatService`
+- 多渠道接入：
+  - Telegram（long polling，支持媒体下载与语音转写）
+  - Discord（Gateway + REST，支持 typing 指示）
+  - WhatsApp（Node bridge）
+  - Feishu（REST 发送；WebSocket 接收可选特性）
+  - Mochat（Claw IM，HTTP watch/polling）
+  - DingTalk（Stream 接收可选特性）
+  - Email（IMAP 收信 + SMTP 发信，需显式 consent）
+  - Slack（Socket Mode）
+  - QQ（可选特性，`qq-botrs`）
+- 内置 skills：项目内置 `skills/*`
+- 运维与维护能力：
+  - `health` / `doctor --fix` / `update`
+  - `pairing list|approve|reject`（陌生私聊配对审批）
+  - `sessions list|show|delete`
+  - `webui` 终端风格控制面板，支持：
+    - 内置对话（`POST /api/chat`）
+    - 中英双语（按浏览器语言自动切换）
+    - 一屏布局（桌面端页面不滚动，面板内滚动）
 
-  Blackboard --> Scheduler["Blackboard Scheduler\nsession lease / worker budget"]
-  Scheduler --> Planner["Flyflor Planner\nplan / execute"]
-  Scheduler --> Reviewer["Flyflor Reviewer\nrisk / gaps / readability"]
-  Planner <--> Reviewer
+## 📦 环境要求
 
-  Blackboard --> Memory["Memory + methodology\nMarkdown / SQLite / Qdrant / ARMS"]
-  Sandbox["Sandbox Box\nstandard / yolo / deny"] --> Tools["Tools\nfiles / shell / web / media / channels"]
-  Direct --> Sandbox
-  Blackboard --> Sandbox
-  Tools --> Checkpoints["Tool checkpoints"]
-  Checkpoints --> Reviewer
+- Rust stable（建议 1.85+）
+- 可选：
+  - Node.js 18+（WhatsApp bridge 登录）
+  - Brave Search API Key（`web_search`，可选；未配置时自动降级到 DuckDuckGo 无 key 搜索）
+  - Groq API Key（语音转写）
 
-  Direct --> Response["Flyflor response"]
-  Reviewer --> Response
-  Blackboard --> Reflection["Methodology Reflection Draft"]
-  Reflection --> Memory
+## ⚡ 快速开始
+
+### 1. 初始化
+
+```bash
+cargo run -- onboard
 ```
 
-### Direct Mode
+该步骤会初始化工作区基础结构，包括 `memory/MEMORY.md`、`memory/HISTORY.md` 与用于本地自定义技能的 `skills/` 目录。
 
-Simple turns stay in the normal agent loop. Flyflor does not inject blackboard
-instructions, acquire a blackboard session lease, or add worker overhead.
+### 2. 配置 API Key
 
-### Direct With Watch
+编辑 `~/.flyflor/config.json`，最小配置示例：
 
-Gray-zone turns start direct, but Flyflor watches for signs that the work needs
-coordination. If the turn starts to churn through tools, repeats a tool failure,
-hits context pressure, or enters another tool iteration, Flyflor rolls the turn
-back to its restore point and reruns it in blackboard mode.
-
-### Blackboard Mode
-
-Complex turns use the blackboard workbench. The blackboard is not an infinite
-debate room. It is a bounded coordination protocol:
-
-- target convergence: 3 rounds
-- hard upper bound: 5 rounds
-- stop early on livelock
-- return a decision form when human input is needed
-- emit reflection drafts when a reusable method appears
-
-See [Blackboard Workbench](docs/architecture/blackboard-workbench.md).
-
-### Sandbox Box And YOLO
-
-Flyflor treats sandboxing as its own runtime Box. The Sandbox Box classifies
-every tool call into `read`, `low`, `medium`, `high`, or `blocked`, then returns
-an action: `allow`, `confirm`, or `deny`.
-
-TUI `/yolo` switches the turn profile from `standard` to `yolo`. That makes the
-agent more autonomous for sandbox-approved file edits and focused test/build
-commands, while destructive commands, credential-related actions, out-of-scope
-side effects, workspace escapes, and hook denials remain protected.
-
-See [Sandbox Box](docs/architecture/sandbox-box.md).
-
-## Blackboard And Decision Handoff
-
-The blackboard gives Flyflor a place to make complex work legible:
-
-- **Planner** proposes the execution path.
-- **Reviewer** challenges assumptions, risk, missing tests, and readability.
-- **Scheduler** keeps the session isolated and the discussion bounded.
-- **Memory** brings identity, user preference, project context, and prior lessons.
-- **Tools** record checkpoints instead of vanishing into hidden logs.
-
-If the blackboard cannot converge, Flyflor stops the internal discussion and
-hands the decision back to the user. The answer includes a
-`flyflor-decision-form` block that can be rendered by TUI/WebUI as single
-select, multi-select, and custom input controls.
-
-```flyflor-decision-form
+```json
 {
-  "version": 1,
-  "title": "Decision needed",
-  "summary": "Flyflor needs you to choose the path before continuing.",
-  "single_select": {
-    "id": "path",
-    "label": "Choose one path",
-    "options": [
-      {
-        "id": "recommended",
-        "label": "Recommended",
-        "description": "The safest path based on the blackboard review."
+  "providers": {
+    "openai": {
+      "apiKey": "sk-xxx"
+    },
+    "openrouter": {
+      "apiKey": "sk-or-xxx",
+      "extraHeaders": {
+        "HTTP-Referer": "https://example.com",
+        "X-Title": "flyflor"
       }
-    ]
+    }
   },
-  "multi_select": {
-    "id": "constraints",
-    "label": "Optional constraints",
-    "options": [
-      {
-        "id": "add_tests",
-        "label": "Add tests",
-        "description": "Require verification before final delivery."
-      }
-    ]
-  },
-  "custom_input": {
-    "id": "notes",
-    "label": "Additional context",
-    "placeholder": "Tell Flyflor anything missing."
+  "agents": {
+    "defaults": {
+      "model": "gpt-4o-mini",
+      "timezone": "Asia/Shanghai"
+    }
   }
 }
 ```
 
-This keeps the system from livelocking and turns uncertainty into a user-facing
-choice.
+`agents.defaults.timezone` 使用 IANA 时区名，例如 `Asia/Shanghai`、`America/Los_Angeles`。它会统一影响系统提示中的当前时间、heartbeat 提示，以及聊天里 `cron` 工具对无 `tz` 的 cron 表达式和无时区 ISO 时间的解释；未配置时默认 `UTC`。
 
-## Reflection System
+如需使用 MiniMax，可在 `providers.minimax` 中配置密钥，并将模型设置为包含 `minimax` 的名称（例如 `minimax/MiniMax-M2.1`）：
 
-Flyflor treats repeated problem-solving patterns as future skills.
-
-When a blackboard turn reveals a reusable method, Flyflor can emit a
-`Methodology Reflection Draft`:
-
-```markdown
-## Methodology Reflection Draft
-
-- Situation: When this method applies.
-- Method: The repeatable approach.
-- Avoid: What failed or caused delay.
-- Next-time hint: A short cue for retrieval before future planning.
+```json
+{
+  "providers": {
+    "minimax": {
+      "apiKey": "minimax-xxx"
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": "minimax/MiniMax-M2.1"
+    }
+  }
+}
 ```
 
-Today, this is a stable Markdown output convention. With ARMS enabled, Flyflor
-indexes these drafts into an isolated methodology space. Before a future answer,
-Flyflor can retrieve related methods and load them into planning without mixing
-them with user facts or general semantic memory.
+如果你的密钥来自 MiniMax 中国大陆平台（minimaxi.com），请设置：
 
-This is the long-term loop:
-
-```mermaid
-flowchart LR
-  Work["Solve task"] --> Reflect["Reflect method"]
-  Reflect --> Method["Skill-style Markdown"]
-  Method --> ARMS["ARMS methodology space"]
-  ARMS --> Retrieve["Retrieve before planning"]
-  Retrieve --> Better["Better next answer"]
+```json
+{
+  "providers": {
+    "minimax": {
+      "apiBase": "https://api.minimaxi.com/v1"
+    }
+  }
+}
 ```
 
-## Memory Model
+如需使用 SiliconFlow / VolcEngine 网关，可配置对应 provider，并直接使用目标模型名：
 
-Flyflor keeps memory deliberately layered:
+```json
+{
+  "providers": {
+    "siliconflow": {
+      "apiKey": "sk-xxx"
+    },
+    "volcengine": {
+      "apiKey": "ark-xxx"
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": "doubao-seed-1-6-thinking-250715"
+    }
+  }
+}
+```
 
-- `workspace/SOUL.md`: agent identity, tone, and durable behavior constraints
-- `workspace/USER.md`: user preferences and working style
-- `workspace/memory/MEMORY.md`: long-lived project and conversation facts
-- SQLite/session history: chronological runtime state
-- Qdrant/semantic memory: vector recall for related context
-- ARMS methodology memory: isolated reflection and self-growth methods
+`flyflor` 使用 LiteLLM 风格的模型路由。你可以直接填写模型（不再需要 `litellm/` 前缀），例如：
 
-The design keeps human-editable memory in Markdown, general semantic recall in
-Qdrant, and Flyflor's own reusable methods in ARMS. Local ARMS uses SQLite as
-the source of truth, HNSW for semantic association, and an R-tree for low
-dimensional methodology-space lookup. It is deliberately isolated: it stores
-only `Methodology Reflection Draft` content, not user facts or ordinary
-conversation memory.
+```json
+{
+  "agents": {
+    "defaults": {
+      "model": "anthropic/claude-3-7-sonnet"
+    }
+  }
+}
+```
 
-## Self-Update And Iteration
+`web_search` 默认优先使用 Brave（若配置了 key）；未配置 `BRAVE_API_KEY` 时会自动使用 DuckDuckGo 无 key 兜底。  
+`web_fetch` 一直可用，可直接抓取指定 URL 的正文内容。
+`http_request` 可直接发起 API 请求（支持 `GET/POST/PUT/PATCH/DELETE`、headers、query、json/body），适合访问本机端口或内网服务。
 
-Flyflor can update itself from GitHub releases:
+如需切换 `web_search` provider（Perplexity / Grok），可在 `tools.web.search` 配置：
+
+```json
+{
+  "tools": {
+    "web": {
+      "search": {
+        "provider": "perplexity",
+        "maxResults": 5,
+        "perplexity": {
+          "apiKey": "pplx-xxx",
+          "baseUrl": "https://api.perplexity.ai",
+          "model": "perplexity/sonar-pro"
+        }
+      }
+    }
+  }
+}
+```
+
+Grok 配置示例：
+
+```json
+{
+  "tools": {
+    "web": {
+      "search": {
+        "provider": "grok",
+        "grok": {
+          "apiKey": "xai-xxx",
+          "model": "grok-4-1-fast",
+          "inlineCitations": true
+        }
+      }
+    }
+  }
+}
+```
+
+如需使用钉钉，还可在 `channels` 中增加：
+
+```json
+{
+  "channels": {
+    "dingtalk": {
+      "enabled": true,
+      "clientId": "dingxxx",
+      "clientSecret": "secretxxx",
+      "allowFrom": []
+    }
+  }
+}
+```
+
+如需使用 Email 通道（IMAP + SMTP）：
+
+```json
+{
+  "channels": {
+    "email": {
+      "enabled": true,
+      "consentGranted": true,
+      "imapHost": "imap.gmail.com",
+      "imapPort": 993,
+      "imapUsername": "you@gmail.com",
+      "imapPassword": "app-password",
+      "smtpHost": "smtp.gmail.com",
+      "smtpPort": 587,
+      "smtpUsername": "you@gmail.com",
+      "smtpPassword": "app-password",
+      "smtpUseTls": true,
+      "fromAddress": "you@gmail.com",
+      "allowFrom": ["trusted@example.com"]
+    }
+  }
+}
+```
+
+如需使用 Slack 通道（Socket Mode）：
+
+```json
+{
+  "channels": {
+    "slack": {
+      "enabled": true,
+      "mode": "socket",
+      "botToken": "xoxb-...",
+      "appToken": "xapp-...",
+      "groupPolicy": "mention",
+      "groupAllowFrom": [],
+      "dm": {
+        "enabled": true,
+        "policy": "open",
+        "allowFrom": []
+      }
+    }
+  }
+}
+```
+
+如需使用 QQ 通道（当前仅支持单聊）：
+
+```json
+{
+  "channels": {
+    "qq": {
+      "enabled": true,
+      "appId": "your-app-id",
+      "secret": "your-secret",
+      "allowFrom": []
+    }
+  }
+}
+```
+
+如需使用 Mochat 通道（Claw IM）：
+
+```json
+{
+  "channels": {
+    "mochat": {
+      "enabled": true,
+      "baseUrl": "https://mochat.io",
+      "clawToken": "claw_xxx",
+      "agentUserId": "6982abcdef",
+      "sessions": ["*"],
+      "panels": ["*"],
+      "allowFrom": [],
+      "replyDelayMode": "non-mention",
+      "replyDelayMs": 120000
+    }
+  }
+}
+```
+
+### 3. 直接对话
 
 ```bash
-flyflor update
+cargo run -- agent -m "Hello"
 ```
 
-The update command downloads the release asset for the current platform and
-applies it to the running executable. The runtime also exposes version metadata:
+### 4. 启动网关
 
 ```bash
-flyflor version
+cargo run -- gateway
 ```
 
-Self-iteration is broader than binary updates:
-
-- runtime events make agent behavior inspectable
-- blackboard deadlocks become decision forms instead of silent stalls
-- reflection drafts become ARMS methodology memory for future planning
-- skills can be installed and forced from conversations
-- WebUI/TUI both expose the same agent runtime rather than separate products
-
-## Install
-
-### Install With Curl
-
-Installer:
+### 5. 启动 WebUI（terminal-cli 风格 + 可对话）
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/huaqingyi/flyflor/main/scripts/install.sh | bash
+cargo run -- webui --host 127.0.0.1 --port 18890
 ```
 
-Options:
+然后访问 `http://127.0.0.1:18890`。
+
+你可以直接在 WebUI 聊天面板里对话。  
+默认会话键是 `webui:default`。
+
+### 6. WebUI 对话 API
 
 ```bash
-# Install to a custom directory
-curl -fsSL https://raw.githubusercontent.com/huaqingyi/flyflor/main/scripts/install.sh | FLYFLOR_INSTALL_DIR=/usr/local/bin bash
-
-# Install a specific release tag
-curl -fsSL https://raw.githubusercontent.com/huaqingyi/flyflor/main/scripts/install.sh | FLYFLOR_VERSION=v0.1.0 bash
-
-# Build from source when release assets are unavailable
-curl -fsSL https://raw.githubusercontent.com/huaqingyi/flyflor/main/scripts/install.sh | FLYFLOR_FROM_SOURCE=1 bash
+curl -X POST http://127.0.0.1:18890/api/chat \
+  -H "Content-Type: application/json" \
+  -d "{\"message\":\"你好\",\"session\":\"webui:default\"}"
 ```
 
-The installer first tries GitHub release assets. If no matching asset exists
-and `git`, `make`, and `go` are available, it falls back to a source build. It
-adds a `flyflor` binary and a compatibility `picoclaw` symlink when possible.
+## 🪟 Windows 服务（NSSM）
 
-### Build From Source
+`flyflor` 支持通过 `nssm` 注册为 Windows 后台服务，并提供统一命令：
+
+- `service install`
+- `service remove`
+- `service start`
+- `service stop`
+- `service restart`
+- `service status`
+
+先构建 release（建议带上你需要的功能特性）：
+
+```powershell
+cargo build --release --all-features
+```
+
+安装服务（默认服务名：`FlyflorService`，默认参数：`gateway`）：
+
+```powershell
+.\target\release\flyflor.exe service install
+```
+
+服务名可选覆盖：
+
+```powershell
+.\target\release\flyflor.exe service install --name FlyflorService2
+```
+
+当你传入 `--name` 时，程序会把该名字写入 `~/.flyflor/config.json` 的 `service.name`，后续 `start/stop/status` 可直接省略 `--name`。
+
+### 服务账号模式
+
+1. 使用 `LocalSystem`（系统账号）：
+
+```powershell
+.\target\release\flyflor.exe service install --system
+```
+
+2. 使用当前用户（推荐，便于读取你用户目录下的 `~/.flyflor/config.json`）：
+
+```powershell
+.\target\release\flyflor.exe service install --use-current-user --password "你的Windows登录密码"
+```
+
+也可用环境变量避免命令行明文密码：
+
+```powershell
+$env:FLYFLOR_SERVICE_PASSWORD="你的Windows登录密码"
+.\target\release\flyflor.exe service install --use-current-user
+Remove-Item Env:FLYFLOR_SERVICE_PASSWORD
+```
+
+### 常用服务命令
+
+```powershell
+.\target\release\flyflor.exe service status
+.\target\release\flyflor.exe service start
+.\target\release\flyflor.exe service stop
+.\target\release\flyflor.exe service restart
+.\target\release\flyflor.exe service remove
+```
+
+### 注意事项
+
+- 请使用“管理员 PowerShell”执行服务安装/启停/删除。
+- `--use-current-user` 的密码是 Windows 登录密码，不是 PIN。
+- `Error 1069` 通常表示服务登录凭据错误或缺少“作为服务登录”权限。
+- 如果提示“服务已标记为删除”，请关闭 `services.msc` 等窗口后稍等重试；必要时重启系统。
+
+## 🧰 常用命令
 
 ```bash
-git clone https://github.com/huaqingyi/flyflor.git flyflor
-cd flyflor
-make build
-mkdir -p ~/.local/bin
-cp build/picoclaw ~/.local/bin/flyflor
-ln -sf ~/.local/bin/flyflor ~/.local/bin/picoclaw
+# 状态与版本
+cargo run -- status
+cargo run -- version
+cargo run -- health
+cargo run -- doctor
+cargo run -- doctor --fix
+cargo run -- update
+
+# 交互模式
+cargo run -- agent
+
+# WebUI
+cargo run -- webui
+
+# WebUI 对话 API
+curl -X POST http://127.0.0.1:18890/api/chat \
+  -H "Content-Type: application/json" \
+  -d "{\"message\":\"你好\",\"session\":\"webui:default\"}"
+
+# 渠道
+cargo run -- channels status
+cargo run -- channels login
+
+# 配对审批（陌生发送者）
+cargo run -- pairing list
+cargo run -- pairing approve telegram <CODE>
+cargo run -- pairing reject telegram <CODE>
+
+# 会话管理
+cargo run -- sessions list
+cargo run -- sessions show telegram:123456 --limit 30
+cargo run -- sessions delete telegram:123456
+
+# 定时任务
+cargo run -- cron list
+cargo run -- cron add -n daily -m "Good morning" --cron "0 9 * * *"
+cargo run -- cron enable <job_id>
+cargo run -- cron run <job_id>
+cargo run -- cron remove <job_id>
 ```
 
-### Docker Compose
+聊天里的 `cron` 工具会默认继承 `agents.defaults.timezone`。像“明早 8 点提醒我”这类请求，如果没有显式给时区，就会按该配置解释。
 
-Docker is the most complete local deployment path because it includes the Web
-console and Qdrant service:
+交互模式退出命令：`exit`、`quit`、`/exit`、`/quit`、`:q`，或 `Ctrl+C`/`Ctrl+D`。
+
+## 📨 Feishu WebSocket 接收
+
+默认构建下可正常发送消息。要启用 Feishu WebSocket 接收：
 
 ```bash
-git clone https://github.com/huaqingyi/flyflor.git flyflor
-cd flyflor
-cp config/config.example.json config/config.json
-docker compose up -d flyflor
+cargo run --features feishu-websocket -- gateway
 ```
 
-Open:
+## 📡 DingTalk Stream 接收
+
+默认构建不启用钉钉 Stream。要启用钉钉接收：
+
+```bash
+cargo run --features dingtalk-stream -- gateway
+```
+
+## 💬 Mochat 通道（Claw IM）
+
+默认关闭。启用后使用 HTTP watch/polling 方式收发消息：
+
+1. 可选：让 flyflor 自动接入 Mochat
+- 你可以先在 agent 模式里发这段提示词（把邮箱替换成你的）：
 
 ```text
-http://localhost:18800
+Register on MoChat and bind this Flyflor instance as your owner. My Email account is xxx@xxx. DM me on MoChat after binding.
 ```
 
-Gateway readiness:
+- flyflor 会尝试自动注册并写入 `~/.flyflor/config.json`。
 
-```text
-http://localhost:18790/ready
+2. 手动配置（推荐你确认一次配置）
+- 在 `~/.flyflor/config.json` 配置 `channels.mochat`：
+- `clawToken`：必填，作为 `X-Claw-Token` 访问 Mochat API
+- `sessions` / `panels`：可填具体 ID，或 `["*"]` 自动发现
+- `groups` + `mention.requireInGroups`：控制群聊是否必须 @ 才触发
+
+```json
+{
+  "channels": {
+    "mochat": {
+      "enabled": true,
+      "baseUrl": "https://mochat.io",
+      "socketUrl": "https://mochat.io",
+      "socketPath": "/socket.io",
+      "clawToken": "claw_xxx",
+      "agentUserId": "6982abcdef",
+      "sessions": ["*"],
+      "panels": ["*"],
+      "replyDelayMode": "non-mention",
+      "replyDelayMs": 120000
+    }
+  }
+}
 ```
 
-More detail: [Docker Guide](docs/guides/docker.md).
-
-## Use
-
-Run the TUI:
+3. 启动网关：
 
 ```bash
-flyflor agent
+cargo run -- gateway
 ```
 
-Ask a one-shot question:
+4. 发送消息测试
+- 私聊会话：使用 `session_xxx` 目标
+- 群/面板会话：使用 panel/group 目标
+
+## 🐧 QQ 通道（当前仅支持单聊）
+
+默认构建不启用 QQ；需通过 `qq-botrs` 特性开启。
+
+1. 注册并创建机器人
+- 访问 [QQ 开放平台](https://q.qq.com) 注册开发者并创建机器人应用
+- 在开发设置中获取 `AppID` 和 `AppSecret`
+
+2. 完成沙箱测试配置
+- 在机器人控制台进入沙箱配置
+- 将你的 QQ 号加入消息测试成员
+- 使用手机 QQ 扫码后，进入机器人会话测试收发
+
+3. 配置 `~/.flyflor/config.json`
+- 使用上面的 `qq` 配置片段，填入 `appId`、`secret`
+- `allowFrom` 为空表示不限制；若需限制，可填入允许的用户 openid（可从运行日志中获取）
+
+4. 运行网关
 
 ```bash
-flyflor agent -m "Explain the blackboard workbench in one paragraph."
+cargo run --features qq-botrs -- gateway
 ```
 
-Start the Web console with Docker:
+启动后，向机器人发送 QQ 单聊消息即可收到回复。
+
+## 🧩 Slack 通道
+
+使用 Socket Mode，无需公网回调 URL。
+
+1. 创建 Slack App
+- 打开 [Slack API](https://api.slack.com/apps) -> Create New App -> From scratch
+- 选择工作区并创建应用
+
+2. 配置应用能力
+- Socket Mode：开启，并创建 App-Level Token（`connections:write`，形如 `xapp-...`）
+- OAuth & Permissions：添加 bot scopes：`chat:write`、`reactions:write`、`app_mentions:read`
+- Event Subscriptions：开启并订阅 `message.im`、`message.channels`、`app_mention`
+- App Home：开启 Messages Tab，并允许从 Messages Tab 发消息
+- Install App：安装到工作区，获取 Bot Token（`xoxb-...`）
+
+3. 配置 `~/.flyflor/config.json`
+
+```json
+{
+  "channels": {
+    "slack": {
+      "enabled": true,
+      "mode": "socket",
+      "botToken": "xoxb-...",
+      "appToken": "xapp-...",
+      "groupPolicy": "mention",
+      "groupAllowFrom": [],
+      "dm": {
+        "enabled": true,
+        "policy": "open",
+        "allowFrom": []
+      }
+    }
+  }
+}
+```
+
+4. 启动网关
 
 ```bash
-docker compose up -d flyflor
+cargo run -- gateway
 ```
 
-Useful commands:
+你可以在私聊中直接消息机器人，或在频道里 @ 机器人触发回复。
+
+## 📱 WhatsApp 登录
+
+`channels login` 会自动：
+
+- 准备 `~/.flyflor/bridge`
+- 执行 `npm install`
+- 执行 `npm run build`
+- 启动 bridge 并在终端展示二维码登录
+
+## 🛠️ 开发
 
 ```bash
-flyflor onboard
-flyflor version
-flyflor update
-flyflor auth status
-flyflor mcp list
-flyflor cron list
+cargo fmt
+cargo test
+cargo check --features feishu-websocket
+cargo check --features dingtalk-stream
+cargo check --features qq-botrs
 ```
 
-## Development
+## 📄 License
 
-For day-to-day Web UI work, do not rebuild the Docker image after every change:
-
-```bash
-make dev-webui
-```
-
-Open:
-
-```text
-http://127.0.0.1:5173
-```
-
-Build pieces:
-
-```bash
-make build
-make build-web-dist
-make dev-build-web-backend
-make dev-build-cli
-```
-
-Full Docker rebuild is reserved for Dockerfile, image dependency, or release
-validation work:
-
-```bash
-docker compose up -d --build flyflor
-```
-
-See [Flyflor Development Workflow](docs/operations/dev-workflow.md).
-
-## Documentation
-
-- [Blackboard Workbench](docs/architecture/blackboard-workbench.md)
-- [ARMS Methodology Memory](docs/architecture/arms-methodology-memory.md)
-- [Routing Guide](docs/guides/routing-guide.md)
-- [Runtime Events](docs/architecture/runtime-events.md)
-- [Session System](docs/architecture/session-system.md)
-- [Configuration Guide](docs/guides/configuration.md)
-- [Docker Guide](docs/guides/docker.md)
-- [Chat Apps](docs/guides/chat-apps.md)
-
-## Compatibility Note
-
-The codebase still keeps some internal compatibility names such as
-`cmd/flyflor`, `PICOCLAW_HOME`, binary names like `picoclaw`, and the original
-Go module path. These are compatibility surfaces. User-facing documentation and
-behavior should describe Flyflor and its blackboard-based intelligent-agent
-architecture.
+MIT

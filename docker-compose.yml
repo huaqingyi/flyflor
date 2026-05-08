@@ -1,48 +1,52 @@
-services:
-  flyflor:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: flyflor:local
-    container_name: flyflor
-    restart: unless-stopped
-    environment:
-      PICOCLAW_HOME: /data/flyflor
-      PICOCLAW_CONFIG: /config/config.json
-      PICOCLAW_BINARY: /usr/local/bin/flyflor
-      PICOCLAW_AGENTS_DEFAULTS_WORKSPACE: /workspace
-      PICOCLAW_GATEWAY_HOST: 0.0.0.0
-      PICOCLAW_LOG_LEVEL: ${PICOCLAW_LOG_LEVEL:-info}
-      QDRANT_URL: http://qdrant:6333
-      FLYFLOR_SEMANTIC_MEMORY_ENABLED: "true"
-      FLYFLOR_QDRANT_COLLECTION: flyflor_memories
-      FLYFLOR_RUNS_DIR: /runs
-      HTTP_PROXY: ${HTTP_PROXY:-}
-      HTTPS_PROXY: ${HTTPS_PROXY:-}
-      ALL_PROXY: ${ALL_PROXY:-}
-      NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1,::1,flyflor,qdrant}
-      http_proxy: ${http_proxy:-}
-      https_proxy: ${https_proxy:-}
-      all_proxy: ${all_proxy:-}
-      no_proxy: ${no_proxy:-localhost,127.0.0.1,::1,flyflor,qdrant}
-    ports:
-      - "18800:18800"
-      - "18790:18790"
-    volumes:
-      - ./config:/config
-      - ./data/flyflor:/data/flyflor
-      - ./data/workspace:/workspace
-      - ./runs:/runs
-      - .:/source:ro
-    depends_on:
-      - qdrant
-    command: ["web", "-console", "-no-browser", "-host", "0.0.0.0", "/config/config.json"]
+x-flyflor-dev: &flyflor-dev
+  build:
+    context: .
+    target: dev
+  image: flyflor-dev:local
+  working_dir: /workspace/flyflor
+  environment:
+    CARGO_HOME: /usr/local/cargo
+    CARGO_TARGET_DIR: /workspace/flyflor/target
+    CARGO_BUILD_JOBS: "1"
+    PATH: /usr/local/cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    RUST_LOG: ${RUST_LOG:-info}
+  volumes:
+    - .:/workspace/flyflor:cached
+    - ./docker/cargo/registry:/usr/local/cargo/registry
+    - ./docker/cargo/git:/usr/local/cargo/git
+    - ./docker/target:/workspace/flyflor/target
+    - ./docker/flyflor:/root/.flyflor
+    - ./docker/bridge/node_modules:/workspace/flyflor/bridge/node_modules
+  ports:
+    - "${FLYFLOR_WEBUI_PORT:-18890}:18890"
+    - "${FLYFLOR_GATEWAY_PORT:-18790}:18790"
+    - "${FLYFLOR_BRIDGE_PORT:-3001}:3001"
+  tty: true
+  stdin_open: true
 
-  qdrant:
-    image: qdrant/qdrant:latest
-    container_name: flyflor-qdrant
-    restart: unless-stopped
-    ports:
-      - "6333:6333"
-    volumes:
-      - ./data/qdrant:/qdrant/storage
+services:
+  dev:
+    <<: *flyflor-dev
+    command: >
+      bash -c "cargo fetch &&
+      cargo build &&
+      ln -sf /workspace/flyflor/target/debug/flyflor /usr/local/bin/flyflor &&
+      echo 'Flyflor dev container is ready.';
+      echo 'Use: docker compose exec dev bash';
+      sleep infinity"
+
+  webui:
+    <<: *flyflor-dev
+    profiles: ["webui"]
+    command: bash -c "cargo run -- webui --host 0.0.0.0 --port 18890"
+
+  gateway:
+    <<: *flyflor-dev
+    profiles: ["gateway"]
+    command: bash -c "cargo run -- gateway --port 18790"
+
+  bridge:
+    <<: *flyflor-dev
+    profiles: ["bridge"]
+    working_dir: /workspace/flyflor/bridge
+    command: bash -c "npm install && npm run dev"
