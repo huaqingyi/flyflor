@@ -69,6 +69,37 @@ PicoClaw stores data in your configured workspace (default: `~/.picoclaw/workspa
 
 > **Note:** Changes to `AGENT.md`, `SOUL.md`, `USER.md` and `memory/MEMORY.md` are automatically detected at runtime via file modification time (mtime) tracking. You do **not** need to restart the gateway after editing these files — the agent picks up the new content on the next request.
 
+### ARMS methodology memory
+
+ARMS is an isolated self-growth database for reusable methods. It stores only
+`Methodology Reflection Draft` sections emitted by Flyflor, not user facts,
+project facts, preferences, or ordinary conversation memory.
+
+```json
+{
+  "agents": {
+    "defaults": {
+      "context_manager": "seahorse",
+      "context_manager_config": {
+        "arms": {
+          "enabled": true,
+          "driver": "local",
+          "path": "~/.picoclaw/arms/arms.db",
+          "space_id": "flyflor-methodologies",
+          "dimensions": 256,
+          "top_k": 5
+        }
+      }
+    }
+  }
+}
+```
+
+The local driver uses SQLite as the source of truth, then rebuilds HNSW and
+R-tree indexes from that database for methodology recall.
+
+See [ARMS Methodology Memory](../architecture/arms-methodology-memory.md).
+
 ### Web launcher dashboard
 
 **picoclaw-launcher** serves a browser UI that requires password sign-in first. On first run, open `/launcher-setup` to create the dashboard password. Later manual sign-ins use `/launcher-login`.
@@ -213,12 +244,17 @@ For more complete routing and model-tier examples, see the [Routing Guide](routi
 
 ### 🔒 Security Sandbox
 
-PicoClaw runs in a sandboxed environment by default. The agent can only access files and execute commands within the configured workspace.
+Flyflor uses a first-class Sandbox Box to classify tool calls before they run. It
+is enabled by default and works with the existing workspace fence, exec deny
+patterns, subprocess isolation, and approval hooks.
 
 #### Default Configuration
 
 ```json
 {
+  "sandbox": {
+    "enabled": true
+  },
   "agents": {
     "defaults": {
       "workspace": "~/.picoclaw/workspace",
@@ -230,8 +266,22 @@ PicoClaw runs in a sandboxed environment by default. The agent can only access f
 
 | Option                  | Default                 | Description                               |
 | ----------------------- | ----------------------- | ----------------------------------------- |
+| `sandbox.enabled`       | `true`                  | Enable tool risk classification before execution |
 | `workspace`             | `~/.picoclaw/workspace` | Working directory for the agent           |
 | `restrict_to_workspace` | `true`                  | Restrict file/command access to workspace |
+
+#### Sandbox Profiles
+
+The default profile is `standard`. In the TUI, `/yolo on` switches the current
+conversation to profile `yolo`.
+
+| Profile | Behavior |
+|---------|----------|
+| `standard` | Allows read-only and low-risk actions. Medium/high risk actions are marked `confirm` for approval hooks and future UI forms. |
+| `yolo` | Allows low and medium risk actions inside the sandbox. Blocked destructive actions are still denied. |
+
+`/yolo` is not a permission bypass. It only makes the agent more autonomous for
+sandbox-approved work.
 
 #### Protected Tools
 

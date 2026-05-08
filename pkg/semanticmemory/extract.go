@@ -18,6 +18,8 @@ type Candidate struct {
 
 var codeFenceRE = regexp.MustCompile("(?s)```.*?```")
 var sentenceSplitRE = regexp.MustCompile(`[。！？!?；;]\s*|\n+`)
+var methodologyReflectionHeadingRE = regexp.MustCompile(`(?im)^#{2,4}\s*Methodology Reflection Draft\s*$`)
+var markdownHeadingRE = regexp.MustCompile(`(?m)^#{1,4}\s+\S`)
 
 var userPreferenceKeywords = []string{
 	"我需要", "我想", "我希望", "必须", "一定要", "不要", "不能", "以后", "记住", "偏好", "喜欢", "请让", "我们需要",
@@ -44,7 +46,7 @@ func ExtractCandidates(msg MessageInput, maxChars int) []Candidate {
 	if role != "user" && role != "assistant" {
 		return nil
 	}
-	content := compressText(msg.Content, maxChars)
+	content := compressText(stripMethodologyReflectionDrafts(msg.Content), maxChars)
 	if len([]rune(content)) < 24 {
 		return nil
 	}
@@ -75,6 +77,32 @@ func ExtractCandidates(msg MessageInput, maxChars int) []Candidate {
 	}
 
 	return dedupeCandidates(candidates)
+}
+
+func stripMethodologyReflectionDrafts(content string) string {
+	matches := methodologyReflectionHeadingRE.FindAllStringIndex(content, -1)
+	if len(matches) == 0 {
+		return content
+	}
+	var b strings.Builder
+	cursor := 0
+	for i, match := range matches {
+		if match[0] > cursor {
+			b.WriteString(content[cursor:match[0]])
+		}
+		start := match[1]
+		end := len(content)
+		if i+1 < len(matches) {
+			end = matches[i+1][0]
+		} else if next := markdownHeadingRE.FindStringIndex(content[start:]); next != nil {
+			end = start + next[0]
+		}
+		cursor = end
+	}
+	if cursor < len(content) {
+		b.WriteString(content[cursor:])
+	}
+	return b.String()
 }
 
 func compressText(text string, maxChars int) string {

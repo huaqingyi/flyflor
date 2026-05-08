@@ -63,6 +63,10 @@ func (al *AgentLoop) runTurn(ctx context.Context, ts *turnState, pipeline *Pipel
 	if err != nil {
 		return turnResult{}, err
 	}
+	if reason := ts.blackboardEscalationReason(); reason != "" {
+		turnStatus = TurnEndStatusEscalated
+		return al.escalateTurnToBlackboard(ts, reason)
+	}
 
 	// Convenience references to exec fields used throughout the turn loop.
 	messages := exec.messages
@@ -202,8 +206,16 @@ func (al *AgentLoop) runTurn(ctx context.Context, ts *turnState, pipeline *Pipel
 			}
 			return pipeline.Finalize(ctx, turnCtx, ts, exec, turnStatus, finalContent)
 		case ControlToolLoop:
+			if ts.opts.BlackboardMode == BlackboardModeDirectWithWatch && iteration > 1 {
+				turnStatus = TurnEndStatusEscalated
+				return al.escalateTurnToBlackboard(ts, "second_iteration_with_tools")
+			}
 			// Execute tools via Pipeline
 			toolCtrl := pipeline.ExecuteTools(ctx, turnCtx, ts, exec, iteration)
+			if reason := ts.blackboardEscalationReason(); reason != "" {
+				turnStatus = TurnEndStatusEscalated
+				return al.escalateTurnToBlackboard(ts, reason)
+			}
 			switch toolCtrl {
 			case ToolControlContinue:
 				// Re-read exec.messages since ExecuteTools may have updated it
@@ -252,6 +264,37 @@ func (al *AgentLoop) runTurn(ctx context.Context, ts *turnState, pipeline *Pipel
 	}
 
 	return pipeline.Finalize(ctx, turnCtx, ts, exec, turnStatus, finalContent)
+}
+
+func (al *AgentLoop) escalateTurnToBlackboard(ts *turnState, reason string) (turnResult, error) {
+	if !ts.opts.NoHistory {
+		if err := ts.restoreSession(ts.agent); err != nil {
+			al.emitEvent(
+				runtimeevents.KindAgentError,
+				ts.eventMeta("escalateTurn", "turn.error"),
+				ErrorPayload{
+					Stage:   "session_restore",
+					Message: err.Error(),
+				},
+			)
+			return turnResult{}, err
+		}
+	}
+	score := 0.0
+	if ts.opts.Complexity != nil {
+		score = ts.opts.Complexity.Score
+	}
+	al.emitEvent(
+		runtimeevents.KindAgentBlackboardEscalated,
+		ts.eventMeta("escalateTurn", "turn.blackboard.escalated"),
+		BlackboardEscalatedPayload{
+			FromMode: string(ts.opts.BlackboardMode),
+			ToMode:   string(BlackboardModeBlackboard),
+			Reason:   reason,
+			Score:    score,
+		},
+	)
+	return turnResult{status: TurnEndStatusEscalated}, nil
 }
 
 func (al *AgentLoop) abortTurn(ts *turnState) (turnResult, error) {
@@ -303,26 +346,27 @@ func (al *AgentLoop) selectCandidates(
 }
 
 func (al *AgentLoop) resolveContextManager() ContextManager {
+	raw := al.cfg.Agents.Defaults.ContextManagerConfig
 	name := al.cfg.Agents.Defaults.ContextManager
 	if name == "" || name == "legacy" {
-		return &legacyContextManager{al: al}
+		return newARMSContextManager(&legacyContextManager{al: al}, raw, al)
 	}
 	factory, ok := lookupContextManager(name)
 	if !ok {
 		logger.WarnCF("agent", "Unknown context manager, falling back to legacy", map[string]any{
 			"name": name,
 		})
-		return &legacyContextManager{al: al}
+		return newARMSContextManager(&legacyContextManager{al: al}, raw, al)
 	}
-	cm, err := factory(al.cfg.Agents.Defaults.ContextManagerConfig, al)
+	cm, err := factory(raw, al)
 	if err != nil {
 		logger.WarnCF("agent", "Failed to create context manager, falling back to legacy", map[string]any{
 			"name":  name,
 			"error": err.Error(),
 		})
-		return &legacyContextManager{al: al}
+		return newARMSContextManager(&legacyContextManager{al: al}, raw, al)
 	}
-	return cm
+	return newARMSContextManager(cm, raw, al)
 }
 
 func (al *AgentLoop) askSideQuestion(

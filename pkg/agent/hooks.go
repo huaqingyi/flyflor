@@ -12,6 +12,7 @@ import (
 	runtimeevents "github.com/sipeed/picoclaw/pkg/events"
 	"github.com/sipeed/picoclaw/pkg/logger"
 	"github.com/sipeed/picoclaw/pkg/providers"
+	"github.com/sipeed/picoclaw/pkg/sandbox"
 	"github.com/sipeed/picoclaw/pkg/tools"
 )
 
@@ -154,10 +155,11 @@ func (r *ToolCallHookRequest) Clone() *ToolCallHookRequest {
 }
 
 type ToolApprovalRequest struct {
-	Meta      HookMeta       `json:"meta"`
-	Context   *TurnContext   `json:"context,omitempty"`
-	Tool      string         `json:"tool"`
-	Arguments map[string]any `json:"arguments,omitempty"`
+	Meta      HookMeta          `json:"meta"`
+	Context   *TurnContext      `json:"context,omitempty"`
+	Tool      string            `json:"tool"`
+	Arguments map[string]any    `json:"arguments,omitempty"`
+	Sandbox   *sandbox.Decision `json:"sandbox,omitempty"`
 }
 
 func (r *ToolApprovalRequest) Clone() *ToolApprovalRequest {
@@ -168,6 +170,11 @@ func (r *ToolApprovalRequest) Clone() *ToolApprovalRequest {
 	cloned.Meta = cloneHookMeta(r.Meta)
 	cloned.Context = cloneTurnContext(r.Context)
 	cloned.Arguments = cloneStringAnyMap(r.Arguments)
+	if r.Sandbox != nil {
+		decision := *r.Sandbox
+		decision.Reasons = append([]string(nil), r.Sandbox.Reasons...)
+		cloned.Sandbox = &decision
+	}
 	return &cloned
 }
 

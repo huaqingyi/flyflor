@@ -12,9 +12,14 @@ import (
 	"github.com/sipeed/picoclaw/pkg"
 )
 
+func boolPtr(v bool) *bool {
+	return &v
+}
+
 // DefaultConfig returns the default configuration for PicoClaw.
 func DefaultConfig() *Config {
 	workspacePath := filepath.Join(GetHome(), pkg.WorkspaceName)
+	enabled := true
 
 	return &Config{
 		Version: CurrentVersion,
@@ -22,6 +27,9 @@ func DefaultConfig() *Config {
 		// until the user explicitly enables subprocess sandboxing.
 		Isolation: IsolationConfig{
 			Enabled: false,
+		},
+		Sandbox: SandboxConfig{
+			Enabled: boolPtr(true),
 		},
 		Agents: AgentsConfig{
 			Defaults: AgentDefaults{
@@ -33,7 +41,13 @@ func DefaultConfig() *Config {
 				MaxToolIterations:         50,
 				SummarizeMessageThreshold: 20,
 				SummarizeTokenPercent:     75,
-				SteeringMode:              "one-at-a-time",
+				BlackboardRouting: &BlackboardRoutingConfig{
+					Enabled:             &enabled,
+					DirectThreshold:     0.35,
+					Threshold:           0.55,
+					AllowAutoEscalation: &enabled,
+				},
+				SteeringMode: "one-at-a-time",
 				ToolFeedback: ToolFeedbackConfig{
 					Enabled:          false,
 					MaxArgsLength:    300,

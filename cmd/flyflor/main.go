@@ -7,10 +7,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
 
+	"github.com/charmbracelet/fang"
+	"github.com/charmbracelet/huh"
 	"github.com/spf13/cobra"
 
 	"github.com/sipeed/picoclaw/cmd/flyflor/internal"
@@ -18,10 +21,7 @@ import (
 	"github.com/sipeed/picoclaw/cmd/flyflor/internal/auth"
 	"github.com/sipeed/picoclaw/cmd/flyflor/internal/cliui"
 	"github.com/sipeed/picoclaw/cmd/flyflor/internal/cron"
-	"github.com/sipeed/picoclaw/cmd/flyflor/internal/dive"
-	fxcmd "github.com/sipeed/picoclaw/cmd/flyflor/internal/fx"
 	"github.com/sipeed/picoclaw/cmd/flyflor/internal/gateway"
-	gumcmd "github.com/sipeed/picoclaw/cmd/flyflor/internal/gum"
 	"github.com/sipeed/picoclaw/cmd/flyflor/internal/mcp"
 	"github.com/sipeed/picoclaw/cmd/flyflor/internal/migrate"
 	"github.com/sipeed/picoclaw/cmd/flyflor/internal/model"
@@ -73,23 +73,7 @@ flyflor --no-color status`,
 		SilenceUsage: true,
 		Run: func(c *cobra.Command, _ []string) {
 			syncCliUIColor(c.Root())
-			configPath := internal.GetConfigPath()
-			if shouldShowRootMenu() {
-				action, err := runRootInteractiveMenu()
-				if err != nil {
-					fmt.Fprint(c.ErrOrStderr(), cliui.FormatCLIError(err.Error(), c))
-					return
-				}
-				if err := executeRootMenuAction(action); err != nil {
-					fmt.Fprint(c.ErrOrStderr(), cliui.FormatCLIError(err.Error(), c))
-				}
-				return
-			}
-			if setupcmd.NeedsSetup(configPath) {
-				fmt.Fprint(c.OutOrStdout(), setupcmd.RenderRequired(setupcmd.Check(configPath)))
-				return
-			}
-			fmt.Fprint(c.OutOrStdout(), renderHome())
+			runRootLauncher(c)
 		},
 		PersistentPreRun: func(c *cobra.Command, _ []string) {
 			syncCliUIColor(c.Root())
@@ -100,12 +84,6 @@ flyflor --no-color status`,
 	cmd.PersistentFlags().BoolVar(&rootNoColor, "no-color", false,
 		"禁用颜色（保留盒式布局）")
 
-	cmd.SetHelpFunc(func(c *cobra.Command, _ []string) {
-		syncCliUIColor(c.Root())
-		fmt.Fprint(c.OutOrStdout(), cliui.RenderCommandHelp(c))
-	})
-	cmd.SetHelpCommand(newHelpCommand())
-
 	cmd.AddCommand(
 		onboard.NewOnboardCommand(),
 		agent.NewAgentCommand(),
@@ -114,9 +92,6 @@ flyflor --no-color status`,
 		gateway.NewGatewayCommand(),
 		status.NewStatusCommand(),
 		cron.NewCronCommand(),
-		dive.NewDiveCommand(),
-		fxcmd.NewFXCommand(),
-		gumcmd.NewGumCommand(),
 		mcp.NewMCPCommand(),
 		migrate.NewMigrateCommand(),
 		setupcmd.NewSetupCommand(),
@@ -133,23 +108,10 @@ flyflor --no-color status`,
 
 func newHelpCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "help [command]",
-		Short: "显示命令帮助",
-		Args:  cobra.ArbitraryArgs,
-		ValidArgsFunction: func(cmd *cobra.Command, args []string, _ string) ([]string, cobra.ShellCompDirective) {
-			if len(args) > 0 {
-				return nil, cobra.ShellCompDirectiveNoFileComp
-			}
-			root := cmd.Root()
-			candidates := make([]string, 0, len(root.Commands()))
-			for _, sub := range root.Commands() {
-				if sub.Hidden {
-					continue
-				}
-				candidates = append(candidates, sub.Name())
-			}
-			return candidates, cobra.ShellCompDirectiveNoFileComp
-		},
+		Use:    "help [command]",
+		Short:  "显示命令帮助",
+		Hidden: true,
+		Args:   cobra.ArbitraryArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			target := cmd.Root()
 			if len(args) > 0 {
@@ -157,10 +119,58 @@ func newHelpCommand() *cobra.Command {
 					target = found
 				}
 			}
-			syncCliUIColor(target.Root())
-			fmt.Fprint(cmd.OutOrStdout(), cliui.RenderCommandHelp(target))
+			_ = target.Help()
 		},
 	}
+}
+
+// runRootLauncher shows a huh-powered command picker when the user runs
+// `flyflor` with no arguments. Selecting an entry executes that subcommand.
+func runRootLauncher(c *cobra.Command) {
+	type entry struct {
+		label string
+		desc  string
+		args  []string
+	}
+	entries := []entry{
+		{"agent", "进入精致 TUI 与智能体对话", []string{"agent"}},
+		{"sessions", "查看可继续的会话", []string{"sessions"}},
+		{"status", "查看 flyflor 当前状态", []string{"status"}},
+		{"model", "查看或切换默认模型", []string{"model"}},
+		{"setup", "初始化模型与工作区", []string{"setup"}},
+		{"skills", "管理技能", []string{"skills"}},
+		{"mcp", "管理 MCP 服务", []string{"mcp"}},
+		{"help", "查看命令总览", []string{"--help"}},
+	}
+
+	options := make([]huh.Option[int], 0, len(entries))
+	for i, e := range entries {
+		options = append(options, huh.NewOption(
+			fmt.Sprintf("%-10s  %s", e.label, e.desc), i,
+		))
+	}
+
+	choice := -1
+	form := huh.NewForm(
+		huh.NewGroup(
+			huh.NewSelect[int]().
+				Title("flyflor · 选择要执行的命令").
+				Description("↑↓ 移动 · Enter 确认 · Ctrl+C 退出").
+				Options(options...).
+				Value(&choice),
+		),
+	).WithTheme(huh.ThemeCharm())
+
+	if err := form.Run(); err != nil {
+		return
+	}
+	if choice < 0 || choice >= len(entries) {
+		return
+	}
+	selected := entries[choice]
+	root := c.Root()
+	root.SetArgs(selected.args)
+	_ = root.Execute()
 }
 
 func localizeRootCommandSummaries(root *cobra.Command) {
@@ -169,9 +179,6 @@ func localizeRootCommandSummaries(root *cobra.Command) {
 		"auth":       "管理认证、登录与登出",
 		"completion": "生成 shell 自动补全脚本",
 		"cron":       "管理定时任务",
-		"dive":       "分析 Docker 镜像层",
-		"fx":         "高级: 透传 JSON 查看器",
-		"gum":        "高级: 透传脚本交互工具",
 		"gateway":    "启动 Flyflor 网关",
 		"mcp":        "管理 MCP 服务配置",
 		"migrate":    "从 OpenClaw 风格目录迁移到 Flyflor",
@@ -217,79 +224,21 @@ func newCompletionCommand(root *cobra.Command) *cobra.Command {
 	return cmd
 }
 
-func renderHome() string {
-	configPath := internal.GetConfigPath()
-	info := cliui.HomeInfo{
-		Version: config.FormatVersion(),
-		Mode:    "交互模式",
-		Config:  configPath,
-	}
-	if _, statErr := os.Stat(configPath); statErr == nil {
-		cfg, err := config.LoadConfig(configPath)
-		if err != nil || cfg == nil {
-			return cliui.RenderHome(info)
-		}
-		info.Model = cfg.Agents.Defaults.GetModelName()
-		info.Workspace = cfg.WorkspacePath()
-	}
-	return cliui.RenderHome(info)
-}
-
-const (
-	colorBlue = "\033[1;38;2;62;93;185m"
-	colorRed  = "\033[1;38;2;213;70;70m"
-	banner    = "\r\n" +
-		colorBlue + "███████╗██╗     ██╗   ██╗" + colorRed + "███████╗██╗      ██████╗ ██████╗ \n" +
-		colorBlue + "██╔════╝██║     ╚██╗ ██╔╝" + colorRed + "██╔════╝██║     ██╔═══██╗██╔══██╗\n" +
-		colorBlue + "█████╗  ██║      ╚████╔╝ " + colorRed + "█████╗  ██║     ██║   ██║██████╔╝\n" +
-		colorBlue + "██╔══╝  ██║       ╚██╔╝  " + colorRed + "██╔══╝  ██║     ██║   ██║██╔══██╗\n" +
-		colorBlue + "██║     ███████╗   ██║   " + colorRed + "██║     ███████╗╚██████╔╝██║  ██║\n" +
-		colorBlue + "╚═╝     ╚══════╝   ╚═╝   " + colorRed + "╚═╝     ╚══════╝ ╚═════╝ ╚═╝  ╚═╝\n " +
-		"\033[0m\r\n"
-	plainBanner = "\r\n" +
-		"███████╗██╗     ██╗   ██╗███████╗██╗      ██████╗ ██████╗ \n" +
-		"██╔════╝██║     ╚██╗ ██╔╝██╔════╝██║     ██╔═══██╗██╔══██╗\n" +
-		"█████╗  ██║      ╚████╔╝ █████╗  ██║     ██║   ██║██████╔╝\n" +
-		"██╔══╝  ██║       ╚██╔╝  ██╔══╝  ██║     ██║   ██║██╔══██╗\n" +
-		"██║     ███████╗   ██║   ██║     ███████╗╚██████╔╝██║  ██║\n" +
-		"╚═╝     ╚══════╝   ╚═╝   ╚═╝     ╚══════╝ ╚═════╝ ╚═╝  ╚═╝\n " +
-		"\r\n"
-)
-
 func main() {
 	cliui.Init(earlyColorDisabled())
 
-	if !suppressStartupBanner() {
-		if earlyColorDisabled() {
-			fmt.Print(plainBanner)
-		} else {
-			fmt.Printf("%s", banner)
-		}
-	}
-
-	tzEnv := os.Getenv("TZ")
-	if tzEnv != "" {
-		fmt.Println("TZ environment:", tzEnv)
-		zoneinfoEnv := os.Getenv("ZONEINFO")
-		fmt.Println("ZONEINFO environment:", zoneinfoEnv)
-		loc, err := time.LoadLocation(tzEnv)
-		if err != nil {
-			fmt.Println("Error loading time zone:", err)
-		} else {
-			fmt.Println("Time zone loaded successfully:", loc)
-			time.Local = loc //nolint:gosmopolitan // We intentionally set local timezone from TZ env
+	if tzEnv := os.Getenv("TZ"); tzEnv != "" {
+		if loc, err := time.LoadLocation(tzEnv); err == nil {
+			time.Local = loc //nolint:gosmopolitan // honour TZ env
 		}
 	}
 
 	cmd := NewPicoclawCommand()
-	last, err := cmd.ExecuteC()
-	if err != nil {
-		syncCliUIColor(cmd)
-		fmt.Fprint(os.Stderr, cliui.FormatCLIError(err.Error(), last))
+	if err := fang.Execute(
+		context.Background(), cmd,
+		fang.WithVersion(config.FormatVersion()),
+		fang.WithNotifySignal(os.Interrupt),
+	); err != nil {
 		os.Exit(1)
 	}
-}
-
-func suppressStartupBanner() bool {
-	return true
 }

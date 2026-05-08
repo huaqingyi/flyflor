@@ -1,4 +1,7 @@
 {
+  "sandbox": {
+    "enabled": true
+  },
   "agents": {
     "defaults": {
       "workspace": "~/.picoclaw/workspace",
@@ -21,6 +24,14 @@
           "embedding": {
             "provider": "hash"
           }
+        },
+        "arms": {
+          "enabled": false,
+          "driver": "local",
+          "path": "~/.picoclaw/arms/arms.db",
+          "space_id": "flyflor-methodologies",
+          "dimensions": 256,
+          "top_k": 5
         }
       },
       "split_on_marker": false,

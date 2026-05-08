@@ -55,6 +55,7 @@ func TestBlackboardPromptContributorInjectsDefaultInternalWorkers(t *testing.T) 
 	messages := builder.BuildMessagesFromPrompt(PromptBuildRequest{
 		SessionKey:     "session-a",
 		CurrentMessage: "hello",
+		BlackboardMode: BlackboardModeBlackboard,
 	})
 	if len(messages) == 0 {
 		t.Fatal("BuildMessagesFromPrompt returned no messages")
@@ -66,9 +67,59 @@ func TestBlackboardPromptContributorInjectsDefaultInternalWorkers(t *testing.T) 
 		"flyflor-planner",
 		"flyflor-reviewer",
 		"Do not require external Codex, Copilot, Claude CLI, or OpenCode installations",
+		"Convergence budget",
+		"flyflor-decision-form",
+		"Methodology Reflection Draft",
 	} {
 		if !strings.Contains(system, want) {
 			t.Fatalf("system prompt missing %q:\n%s", want, system)
 		}
+	}
+}
+
+func TestBlackboardPromptContributorUsesConventionalConvergencePolicy(t *testing.T) {
+	t.Setenv("PICOCLAW_BUILTIN_SKILLS", t.TempDir())
+	builder := NewContextBuilder(t.TempDir())
+	if err := builder.RegisterPromptContributor(blackboardPromptContributor{
+		scheduler: NewBlackboardScheduler(nil),
+	}); err != nil {
+		t.Fatalf("RegisterPromptContributor() error = %v", err)
+	}
+
+	messages := builder.BuildMessagesFromPrompt(PromptBuildRequest{
+		SessionKey:     "session-a",
+		CurrentMessage: "hello",
+		BlackboardMode: BlackboardModeBlackboard,
+	})
+	system := messages[0].Content
+	for _, want := range []string{
+		"at most 3 rounds; 5 is a hard upper bound",
+		"Livelock detection",
+		"Deadlock handoff",
+	} {
+		if !strings.Contains(system, want) {
+			t.Fatalf("system prompt missing conventional policy %q:\n%s", want, system)
+		}
+	}
+}
+
+func TestBlackboardPromptContributorSkipsDirectTurns(t *testing.T) {
+	t.Setenv("PICOCLAW_BUILTIN_SKILLS", t.TempDir())
+	scheduler := NewBlackboardScheduler(nil)
+	builder := NewContextBuilder(t.TempDir())
+	if err := builder.RegisterPromptContributor(blackboardPromptContributor{scheduler: scheduler}); err != nil {
+		t.Fatalf("RegisterPromptContributor() error = %v", err)
+	}
+
+	messages := builder.BuildMessagesFromPrompt(PromptBuildRequest{
+		SessionKey:     "session-a",
+		CurrentMessage: "hello",
+		BlackboardMode: BlackboardModeDirect,
+	})
+	if len(messages) == 0 {
+		t.Fatal("BuildMessagesFromPrompt returned no messages")
+	}
+	if strings.Contains(messages[0].Content, "Blackboard Workbench") {
+		t.Fatalf("direct turn should not include blackboard prompt:\n%s", messages[0].Content)
 	}
 }

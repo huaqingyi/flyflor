@@ -108,6 +108,7 @@ type PromptBuildRequest struct {
 
 	CurrentMessage string
 	Media          []string
+	BlackboardMode BlackboardMode
 
 	Channel           string
 	ChatID            string

@@ -5,6 +5,7 @@ package agent
 import (
 	"context"
 	"reflect"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -203,6 +204,10 @@ type turnState struct {
 	restorePointHistory []providers.Message
 	restorePointSummary string
 	persistedMessages   []providers.Message
+	escalationReason    string
+	toolExecutions      int
+	lastToolName        string
+	lastToolFailures    int
 
 	// SubTurn support (from HEAD)
 	depth                int                    // SubTurn depth (0 for root turn)
@@ -512,6 +517,49 @@ func (ts *turnState) restoreSession(agent *AgentInstance) error {
 	agent.Sessions.SetHistory(ts.sessionKey, history)
 	agent.Sessions.SetSummary(ts.sessionKey, summary)
 	return agent.Sessions.Save(ts.sessionKey)
+}
+
+func (ts *turnState) noteToolExecution(toolName string, isError bool) {
+	ts.mu.Lock()
+	defer ts.mu.Unlock()
+	ts.toolExecutions++
+	if isError {
+		if toolName == ts.lastToolName {
+			ts.lastToolFailures++
+		} else {
+			ts.lastToolName = toolName
+			ts.lastToolFailures = 1
+		}
+	} else {
+		ts.lastToolName = toolName
+		ts.lastToolFailures = 0
+	}
+	if ts.escalationReason != "" || ts.opts.BlackboardMode != BlackboardModeDirectWithWatch {
+		return
+	}
+	switch {
+	case ts.toolExecutions >= 3:
+		ts.escalationReason = "tool_count_threshold"
+	case ts.lastToolFailures >= 2:
+		ts.escalationReason = "repeated_tool_failure"
+	}
+}
+
+func (ts *turnState) noteEscalation(reason string) {
+	if strings.TrimSpace(reason) == "" {
+		return
+	}
+	ts.mu.Lock()
+	defer ts.mu.Unlock()
+	if ts.escalationReason == "" && ts.opts.BlackboardMode == BlackboardModeDirectWithWatch {
+		ts.escalationReason = reason
+	}
+}
+
+func (ts *turnState) blackboardEscalationReason() string {
+	ts.mu.RLock()
+	defer ts.mu.RUnlock()
+	return ts.escalationReason
 }
 
 func matchingTurnMessageTail(history, persisted []providers.Message) int {

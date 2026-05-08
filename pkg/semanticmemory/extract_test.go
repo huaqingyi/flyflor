@@ -2,6 +2,7 @@ package semanticmemory
 
 import (
 	"context"
+	"strings"
 	"testing"
 )
 
@@ -45,6 +46,36 @@ func TestExtractCandidatesKeepsAssistantOutcome(t *testing.T) {
 
 	candidates := ExtractCandidates(msg, 200)
 	assertCandidateKind(t, candidates, "outcome")
+}
+
+func TestExtractCandidatesSkipsMethodologyReflectionDraft(t *testing.T) {
+	msg := MessageInput{
+		Role: "assistant",
+		Content: `已完成普通交付。
+
+## Methodology Reflection Draft
+
+- Situation: When a blackboard task repeats the same blocker.
+- Method: Return a decision form instead of continuing hidden debate.
+- Avoid: Indexing this method into ordinary Qdrant memory.
+- Next-time hint: blackboard deadlock
+
+## Summary
+
+已验证普通总结仍可进入常规语义记忆。`,
+	}
+
+	candidates := ExtractCandidates(msg, 900)
+	if len(candidates) == 0 {
+		t.Fatal("expected ordinary assistant outcome candidate after reflection draft")
+	}
+	for _, candidate := range candidates {
+		if strings.Contains(candidate.Text, "decision form") ||
+			strings.Contains(candidate.Text, "blackboard deadlock") ||
+			strings.Contains(candidate.Text, "Methodology Reflection Draft") {
+			t.Fatalf("semantic memory leaked methodology draft: %#v", candidate)
+		}
+	}
 }
 
 func TestHashEmbedderDimensionsAndNormalization(t *testing.T) {

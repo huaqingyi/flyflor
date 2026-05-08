@@ -29,7 +29,7 @@ func TestAgentTUIViewShowsSlashCommandMenu(t *testing.T) {
 		}
 
 		view := m.View()
-		for _, want := range []string{"智能体运行台", "1 对话", "2 历史 Session", "3 黑板", "4 记忆", "5 设置", "实时对话", "命令扩展菜单", "/edit", "/bb"} {
+		for _, want := range []string{"FLYFLOR", " 1 ", " 2 ", " 3 ", " 4 ", " 5 ", "对话写入终端 scrollback", "命令菜单", "/edit", "/bb"} {
 			if !strings.Contains(view, want) {
 				t.Fatalf("TUI view missing %q:\n%s", want, view)
 			}
@@ -56,7 +56,7 @@ func TestAgentTUIBlackboardTabShowsFoldTree(t *testing.T) {
 	}
 
 	view := m.View()
-	for _, want := range []string{"3 黑板", "折叠黑板 / 思考过程", "第1轮", "第1轮摘要", "Worker 讨论"} {
+	for _, want := range []string{" 3 ", "完整黑板", "第1轮", "第1轮摘要", "Worker 讨论"} {
 		if !strings.Contains(view, want) {
 			t.Fatalf("TUI view missing %q:\n%s", want, view)
 		}
@@ -93,7 +93,7 @@ func TestAgentTUIBlackboardFoldNavigation(t *testing.T) {
 	}
 }
 
-func TestAgentTUIViewShowsTranscriptWithMarkdownAnswer(t *testing.T) {
+func TestAgentTUITranscriptShowsMarkdownAnswer(t *testing.T) {
 	m := agentTUIModel{
 		width:   112,
 		height:  34,
@@ -106,19 +106,24 @@ func TestAgentTUIViewShowsTranscriptWithMarkdownAnswer(t *testing.T) {
 	}
 
 	view := stripANSIForTest(m.View())
-	for _, want := range []string{"实时对话 · 固定布局", "黑板为什么看不懂？", "😁 完成 思考过程"} {
+	for _, want := range []string{"对话写入终端 scrollback", "向 Flyflor 提问"} {
 		if !strings.Contains(view, want) {
-			t.Fatalf("chat transcript missing %q:\n%s", want, view)
+			t.Fatalf("chat control surface missing %q:\n%s", want, view)
 		}
 	}
-	allRows := stripANSIForTest(strings.Join(m.chatRenderableRows(108), "\n"))
+	if strings.Contains(view, "黑板为什么看不懂？") {
+		t.Fatalf("chat transcript should not be managed by View anymore:\n%s", view)
+	}
+	allRows := stripANSIForTest(m.transcriptHistory(108))
+	for _, want := range []string{"黑板为什么看不懂？", "完整黑板 /bb 1"} {
+		if !strings.Contains(allRows, want) {
+			t.Fatalf("transcript missing %q:\n%s", want, allRows)
+		}
+	}
 	for _, want := range []string{"Flyflor Planner", "摘要", "按轮次分组", "可读黑板"} {
 		if !strings.Contains(allRows, want) {
 			t.Fatalf("complete chat history missing %q:\n%s", want, allRows)
 		}
-	}
-	if strings.Contains(view, "| 我：") || strings.Contains(view, "| 回答：") {
-		t.Fatalf("chat transcript should use color blocks, not pipe prefixes:\n%s", view)
 	}
 	if strings.Contains(allRows, "**按轮次分组**") {
 		t.Fatalf("assistant markdown should be rendered, not shown raw:\n%s", allRows)
@@ -126,20 +131,74 @@ func TestAgentTUIViewShowsTranscriptWithMarkdownAnswer(t *testing.T) {
 	if strings.Contains(allRows, "已折叠") || strings.Contains(allRows, "展开/收拢") {
 		t.Fatalf("chat transcript must not fold thinking or conversation content:\n%s", allRows)
 	}
+	if !strings.Contains(m.transcriptHistory(108), "┃") {
+		t.Fatalf("user messages should be visually marked with an opencode-style left rail:\n%s", m.transcriptHistory(108))
+	}
+	if strings.ContainsAny(allRows, "╭╮╰╯│") {
+		t.Fatalf("chat transcript blocks should not use borders:\n%s", allRows)
+	}
 }
 
-func TestAgentTUIChatKeepsHeaderFixedAndScrollsInsideTUI(t *testing.T) {
+func TestAgentTUIInputAndUserMessageUsePanelBackgrounds(t *testing.T) {
+	m := agentTUIModel{
+		width:       112,
+		height:      34,
+		session:     "cli:test",
+		model:       "test-model",
+		status:      "就绪",
+		input:       "/he",
+		cursor:      3,
+		menuVisible: true,
+		turns: []cliui.BlackboardTurn{
+			{Index: 1, User: "去掉背景", Assistant: "## 回答\n\n- Markdown 透明\n\n`code`"},
+		},
+	}
+	view := stripANSIForTest(m.View())
+	for _, want := range []string{"/he", "Flyflor · test-model · 标准 · 就绪", "▌"} {
+		if !strings.Contains(view, want) {
+			t.Fatalf("input surface missing %q:\n%s", want, view)
+		}
+	}
+	transcript := stripANSIForTest(m.transcriptHistory(108))
+	if !strings.Contains(transcript, "┃") || !strings.Contains(transcript, "去掉背景") {
+		t.Fatalf("user message panel should keep the marked left rail:\n%s", transcript)
+	}
+	if rendered := tuiGlowMarkdown("## 回答\n\n- Markdown 透明\n\n`code`", 80); containsANSIBackgroundForTest(rendered) {
+		t.Fatalf("assistant markdown should keep transparent background:\n%q", rendered)
+	}
+}
+
+func TestAgentTUIMarkdownStripsBackgroundANSI(t *testing.T) {
+	rendered := tuiStripANSIBackground("\x1b[38;2;255;255;255;48;2;0;0;0mhello\x1b[0m")
+	if strings.Contains(rendered, "48;") {
+		t.Fatalf("markdown render should not keep background ANSI: %q", rendered)
+	}
+	if !strings.Contains(rendered, "38;2;255;255;255") {
+		t.Fatalf("markdown render should preserve foreground ANSI: %q", rendered)
+	}
+}
+
+func TestAgentTUIMarkdownRendererUsesTransparentBackground(t *testing.T) {
+	rendered := tuiGlowMarkdown("# 标题\n\n`inline`\n\n```go\nfmt.Println(\"hi\")\n```", 80)
+	if containsANSIBackgroundForTest(rendered) {
+		t.Fatalf("markdown renderer should not emit background ANSI:\n%q", rendered)
+	}
+	if !strings.Contains(stripANSIForTest(rendered), "fmt.Println") {
+		t.Fatalf("markdown code block should still render content:\n%s", stripANSIForTest(rendered))
+	}
+}
+
+func TestAgentTUITranscriptRendersFullHistoryForNativeScrollback(t *testing.T) {
 	longMarkdown := "# 长回答\n\n"
 	for i := 1; i <= 28; i++ {
 		longMarkdown += fmt.Sprintf("- **段落 %02d**：这是一段用于测试滚动阅读的 Markdown 内容。\n", i)
 	}
 	m := agentTUIModel{
-		width:      112,
-		height:     28,
-		session:    "cli:test",
-		model:      "test-model",
-		status:     "就绪",
-		chatScroll: tuiScrollBottom,
+		width:   112,
+		height:  28,
+		session: "cli:test",
+		model:   "test-model",
+		status:  "就绪",
 		turns: []cliui.BlackboardTurn{
 			{Index: 1, User: "给我一个很长的 Markdown 回答", Assistant: longMarkdown},
 		},
@@ -149,25 +208,20 @@ func TestAgentTUIChatKeepsHeaderFixedAndScrollsInsideTUI(t *testing.T) {
 	if strings.Contains(view, "对话位置") {
 		t.Fatalf("chat should not show virtual scroll controls:\n%s", view)
 	}
-	if !strings.Contains(view, "Header/Tabs/Input 固定") {
-		t.Fatalf("chat should explain fixed TUI layout:\n%s", view)
+	if strings.Contains(view, "历史 1-") || strings.Contains(view, "历史 2-") {
+		t.Fatalf("chat should not show virtual scroll indicators:\n%s", view)
 	}
-	if !strings.Contains(view, "段落 28") {
-		t.Fatalf("chat should start at bottom of long history:\n%s", view)
+	if !strings.Contains(view, "终端 scrollback") {
+		t.Fatalf("chat should explain native terminal scrolling:\n%s", view)
 	}
-	if strings.Contains(view, "**段落") {
-		t.Fatalf("assistant markdown should be rendered, not raw markdown:\n%s", view)
+	transcript := stripANSIForTest(m.transcriptHistory(108))
+	for _, want := range []string{"给我一个很长的 Markdown 回答", "完整黑板 /bb 1", "段落 01", "段落 28"} {
+		if !strings.Contains(transcript, want) {
+			t.Fatalf("chat should render full transcript for terminal scrollback, missing %q:\n%s", want, transcript)
+		}
 	}
-	scrolledTop := m
-	scrolledTop.scrollChat(-999)
-	topView := stripANSIForTest(scrolledTop.View())
-	if !strings.Contains(topView, "给我一个很长的 Markdown 回答") || !strings.Contains(topView, "😁 完成 思考过程") {
-		t.Fatalf("chat should scroll to the beginning of full history:\n%s", topView)
-	}
-	scrolledTop.scrollChat(999)
-	bottomView := stripANSIForTest(scrolledTop.View())
-	if !strings.Contains(bottomView, "段落 28") {
-		t.Fatalf("chat should scroll back to the end of full history:\n%s", bottomView)
+	if strings.Contains(transcript, "**段落") {
+		t.Fatalf("assistant markdown should be rendered, not raw markdown:\n%s", transcript)
 	}
 }
 
@@ -185,8 +239,8 @@ func TestAgentTUIThinkCommandExpandsInlineDetails(t *testing.T) {
 
 	next, _ := m.handleSlashCommand("/think 1")
 	expanded := next.(agentTUIModel)
-	view := stripANSIForTest(expanded.View())
-	for _, want := range []string{"解释三层记忆", "😁 完成 思考过程", "Flyflor Planner", "/bb 1"} {
+	view := stripANSIForTest(expanded.transcriptHistory(108))
+	for _, want := range []string{"解释三层记忆", "😁 Flyflor Planner", "完整黑板 /bb 1"} {
 		if !strings.Contains(view, want) {
 			t.Fatalf("expanded thinking missing %q:\n%s", want, view)
 		}
@@ -211,13 +265,13 @@ func TestAgentTUIShowsLiveThinkingSummaryAndElapsed(t *testing.T) {
 	}
 
 	view := stripANSIForTest(m.View())
-	for _, want := range []string{"解释为什么 TUI 卡顿", "😅 攻坚 思考过程", "摘要: 召回记忆", "用时 3s", "/bb latest"} {
+	for _, want := range []string{"解释为什么 TUI 卡顿", "😅 攻坚 · 组织上下文", "摘要: 召回记忆", "用时 3s", "完整黑板 /bb latest"} {
 		if !strings.Contains(view, want) {
 			t.Fatalf("live thinking view missing %q:\n%s", want, view)
 		}
 	}
-	if strings.Contains(view, "| 回答") || strings.Contains(view, "| 我：") {
-		t.Fatalf("live thinking should use color blocks, not pipe prefixes:\n%s", view)
+	if strings.Contains(view, "思考过程:") || strings.Contains(view, "你:") {
+		t.Fatalf("live thinking should use background blocks, not text labels:\n%s", view)
 	}
 	if strings.Contains(view, "回答：") {
 		t.Fatalf("live thinking should not show final answer block yet:\n%s", view)
@@ -294,8 +348,11 @@ func TestAgentTUIYoloModeCommandAndPromptHint(t *testing.T) {
 	if !yolo.yoloMode {
 		t.Fatal("/yolo should enable yolo mode")
 	}
-	if got := yolo.promptForAgent("修复测试"); !strings.Contains(got, "/yolo is ON") || !strings.Contains(got, "修复测试") {
-		t.Fatalf("yolo prompt missing autonomy hint: %q", got)
+	if got := yolo.promptForAgent("修复测试"); got != "修复测试" {
+		t.Fatalf("yolo prompt should keep user text clean: %q", got)
+	}
+	if got := yolo.sandboxProfile(); got != "yolo" {
+		t.Fatalf("yolo profile = %q, want yolo", got)
 	}
 	if view := stripANSIForTest(yolo.View()); !strings.Contains(view, "YOLO") || !strings.Contains(view, "/yolo") {
 		t.Fatalf("yolo view should expose mode and command:\n%s", view)
@@ -306,8 +363,8 @@ func TestAgentTUIYoloModeCommandAndPromptHint(t *testing.T) {
 	if standard.yoloMode {
 		t.Fatal("/yolo off should disable yolo mode")
 	}
-	if got := standard.promptForAgent("修复测试"); strings.Contains(got, "/yolo is ON") {
-		t.Fatalf("standard prompt should not include yolo hint: %q", got)
+	if got := standard.sandboxProfile(); got != "standard" {
+		t.Fatalf("standard profile = %q, want standard", got)
 	}
 }
 
@@ -366,6 +423,38 @@ func TestAgentTUITabSwitchingAndSessionPanel(t *testing.T) {
 	}
 	if view := stripANSIForTest(settings.View()); !strings.Contains(view, "flyflor setup") || !strings.Contains(view, "fx") || !strings.Contains(view, "gum") {
 		t.Fatalf("settings tab missing setup/tool guidance:\n%s", view)
+	}
+}
+
+func TestAgentTUITabKeyAlwaysSwitchesTabs(t *testing.T) {
+	m := agentTUIModel{
+		width:       112,
+		height:      34,
+		status:      "就绪",
+		input:       "/he",
+		cursor:      3,
+		menuVisible: true,
+	}
+
+	next, _ := m.handleKey(tea.KeyMsg{Type: tea.KeyTab})
+	switched := next.(agentTUIModel)
+	if switched.currentTab() != agentTabSessions {
+		t.Fatalf("Tab should switch tabs even when menu is visible, got %v", switched.currentTab())
+	}
+	if switched.menuVisible {
+		t.Fatal("Tab switching should close the slash menu")
+	}
+	if switched.input != "/he" {
+		t.Fatalf("Tab should not accept slash completion, got input %q", switched.input)
+	}
+
+	next, _ = switched.handleKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'\t'}})
+	runeTab := next.(agentTUIModel)
+	if runeTab.currentTab() != agentTabBlackboard {
+		t.Fatalf("literal tab rune should switch tabs, got %v", runeTab.currentTab())
+	}
+	if strings.Contains(runeTab.input, "\t") {
+		t.Fatalf("literal tab rune must not be inserted into input: %q", runeTab.input)
 	}
 }
 
@@ -619,4 +708,22 @@ func TestAgentTUIMenuSubmitDecision(t *testing.T) {
 
 func stripANSIForTest(s string) string {
 	return tuiANSIRe.ReplaceAllString(s, "")
+}
+
+func containsANSIBackgroundForTest(s string) bool {
+	for _, match := range tuiANSISGRRe.FindAllStringSubmatch(s, -1) {
+		if len(match) != 2 {
+			continue
+		}
+		for _, part := range strings.Split(match[1], ";") {
+			n := 0
+			if _, err := fmt.Sscanf(part, "%d", &n); err != nil {
+				continue
+			}
+			if n == 48 || (n >= 40 && n <= 49) || (n >= 100 && n <= 107) {
+				return true
+			}
+		}
+	}
+	return strings.Contains(s, "\x1b[48:")
 }

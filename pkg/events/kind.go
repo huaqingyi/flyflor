@@ -5,6 +5,12 @@ const (
 	KindAgentTurnStart Kind = "agent.turn.start"
 	// KindAgentTurnEnd is emitted when an agent turn ends.
 	KindAgentTurnEnd Kind = "agent.turn.end"
+	// KindAgentComplexityAssessed is emitted when blackboard routing evaluates a turn.
+	KindAgentComplexityAssessed Kind = "agent.complexity.assessed"
+	// KindAgentBlackboardEscalated is emitted when a watched direct turn restarts in blackboard mode.
+	KindAgentBlackboardEscalated Kind = "agent.blackboard.escalated"
+	// KindAgentSandboxAssessed is emitted when the sandbox box classifies a tool call.
+	KindAgentSandboxAssessed Kind = "agent.sandbox.assessed"
 
 	// KindAgentLLMRequest is emitted before an LLM request.
 	KindAgentLLMRequest Kind = "agent.llm.request"
@@ -105,6 +111,8 @@ const (
 var knownKinds = []Kind{
 	KindAgentTurnStart,
 	KindAgentTurnEnd,
+	KindAgentComplexityAssessed,
+	KindAgentBlackboardEscalated,
 	KindAgentLLMRequest,
 	KindAgentLLMDelta,
 	KindAgentLLMResponse,

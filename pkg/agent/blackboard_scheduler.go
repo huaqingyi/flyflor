@@ -49,6 +49,20 @@ type BlackboardScheduler struct {
 	order    []string
 }
 
+type BlackboardPolicy struct {
+	MaxRounds         int
+	HardMaxRounds     int
+	LivelockDetection bool
+	AskUserOnDeadlock bool
+}
+
+const (
+	BlackboardDefaultMaxRounds  = 3
+	BlackboardHardMaxRounds     = 5
+	BlackboardLivelockDetection = true
+	BlackboardAskUserOnDeadlock = true
+)
+
 type BlackboardTurnLease struct {
 	scheduler  *BlackboardScheduler
 	sessionKey string
@@ -233,7 +247,17 @@ func (s *BlackboardScheduler) SessionActive(sessionKey string) bool {
 	return state != nil && state.active
 }
 
+func DefaultBlackboardPolicy() BlackboardPolicy {
+	return BlackboardPolicy{
+		MaxRounds:         BlackboardDefaultMaxRounds,
+		HardMaxRounds:     BlackboardHardMaxRounds,
+		LivelockDetection: BlackboardLivelockDetection,
+		AskUserOnDeadlock: BlackboardAskUserOnDeadlock,
+	}
+}
+
 func (s *BlackboardScheduler) PromptContent(sessionKey string) string {
+	policy := DefaultBlackboardPolicy()
 	workers := s.DefaultWorkers()
 	var b strings.Builder
 	b.WriteString("## Blackboard Workbench\n\n")
@@ -244,6 +268,10 @@ func (s *BlackboardScheduler) PromptContent(sessionKey string) string {
 		b.WriteString("` is isolated from other sessions.\n")
 	}
 	b.WriteString("- Scheduler policy: keep worker context compact, avoid copying full history into worker notes, and merge only useful conclusions back into the final answer.\n")
+	b.WriteString(fmt.Sprintf("- Convergence budget: complete the worker discussion in at most %d rounds; %d is a hard upper bound and must not be exceeded.\n", policy.MaxRounds, policy.HardMaxRounds))
+	if policy.LivelockDetection {
+		b.WriteString("- Livelock detection: stop early if two consecutive rounds add no new facts, repeat the same disagreement, keep the same blocker open, or retry the same failing tool path.\n")
+	}
 	b.WriteString("- Default workflow: Blackboard Workbench coordinates the workers below, lets them challenge each other briefly, then Flyflor produces the final user-facing answer.\n\n")
 	b.WriteString("Default workers:\n")
 	for _, worker := range workers {
@@ -260,6 +288,25 @@ func (s *BlackboardScheduler) PromptContent(sessionKey string) string {
 		}
 		b.WriteString(".\n")
 	}
+	if policy.AskUserOnDeadlock {
+		b.WriteString("\nDeadlock handoff:\n")
+		b.WriteString("- If the discussion reaches the round budget without a stable answer, do not continue debating internally.\n")
+		b.WriteString("- Return a concise summary of what is known, what is blocked, and what the user must decide.\n")
+		b.WriteString("- Include a machine-readable decision form exactly once, using this fenced block format:\n\n")
+		b.WriteString("```flyflor-decision-form\n")
+		b.WriteString("{\n")
+		b.WriteString("  \"version\": 1,\n")
+		b.WriteString("  \"title\": \"Decision needed\",\n")
+		b.WriteString("  \"summary\": \"One short sentence describing why Flyflor needs user input.\",\n")
+		b.WriteString("  \"single_select\": {\"id\": \"path\", \"label\": \"Choose one path\", \"options\": [{\"id\": \"recommended\", \"label\": \"Recommended\", \"description\": \"Why this is safest.\"}]},\n")
+		b.WriteString("  \"multi_select\": {\"id\": \"constraints\", \"label\": \"Optional constraints\", \"options\": [{\"id\": \"add_tests\", \"label\": \"Add tests\", \"description\": \"Include verification before final delivery.\"}]},\n")
+		b.WriteString("  \"custom_input\": {\"id\": \"notes\", \"label\": \"Additional context\", \"placeholder\": \"Tell Flyflor any missing constraint.\"}\n")
+		b.WriteString("}\n")
+		b.WriteString("```\n")
+	}
+	b.WriteString("\nReflection handoff:\n")
+	b.WriteString("- When this turn reveals a reusable method, add a short `Methodology Reflection Draft` section in Markdown: situation, method, avoid, next-time hint.\n")
+	b.WriteString("- Keep it concise; later Flyflor memory will store these drafts like skill-style methodology notes.\n")
 	b.WriteString("\nWhen answering, synthesize the workers' discussion without exposing noisy raw logs unless the user opens the blackboard.")
 	return b.String()
 }
@@ -279,6 +326,9 @@ func (c blackboardPromptContributor) PromptSource() PromptSourceDescriptor {
 }
 
 func (c blackboardPromptContributor) ContributePrompt(_ context.Context, req PromptBuildRequest) ([]PromptPart, error) {
+	if req.BlackboardMode != BlackboardModeBlackboard {
+		return nil, nil
+	}
 	scheduler := c.scheduler
 	if scheduler == nil {
 		scheduler = NewBlackboardScheduler(nil)

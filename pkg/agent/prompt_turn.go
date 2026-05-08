@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/sipeed/picoclaw/pkg/providers"
+	"github.com/sipeed/picoclaw/pkg/sandbox"
 )
 
 func promptBuildRequestForTurn(
@@ -20,6 +21,7 @@ func promptBuildRequestForTurn(
 		Summary:           summary,
 		CurrentMessage:    currentMessage,
 		Media:             append([]string(nil), media...),
+		BlackboardMode:    ts.opts.BlackboardMode,
 		Channel:           ts.channel,
 		ChatID:            ts.chatID,
 		SenderID:          ts.opts.Dispatch.SenderID(),
@@ -30,13 +32,10 @@ func promptBuildRequestForTurn(
 }
 
 func promptOverlaysForOptions(opts processOptions) []PromptPart {
+	parts := make([]PromptPart, 0, 2)
 	systemPrompt := strings.TrimSpace(opts.SystemPromptOverride)
-	if systemPrompt == "" {
-		return nil
-	}
-
-	return []PromptPart{
-		{
+	if systemPrompt != "" {
+		parts = append(parts, PromptPart{
 			ID:      "instruction.subturn_profile",
 			Layer:   PromptLayerInstruction,
 			Slot:    PromptSlotWorkspace,
@@ -45,8 +44,25 @@ func promptOverlaysForOptions(opts processOptions) []PromptPart {
 			Content: systemPrompt,
 			Stable:  false,
 			Cache:   PromptCacheNone,
-		},
+		})
 	}
+	if opts.SandboxProfile == sandbox.ProfileYOLO {
+		parts = append(parts, PromptPart{
+			ID:     "instruction.sandbox_yolo",
+			Layer:  PromptLayerInstruction,
+			Slot:   PromptSlotWorkspace,
+			Source: PromptSource{ID: PromptSourceID("sandbox:profile"), Name: "sandbox.profile"},
+			Title:  "Sandbox YOLO Profile",
+			Content: strings.Join([]string{
+				"[Flyflor Sandbox Box: /yolo is ON]",
+				"Act autonomously for low-risk and sandbox-approved work: inspect files, make focused edits, and run targeted read/test/build commands when useful.",
+				"Do not ask for confirmation unless the sandbox decision, user scope, credentials, destructive impact, remote side effects, or policy requires it.",
+			}, "\n"),
+			Stable: false,
+			Cache:  PromptCacheNone,
+		})
+	}
+	return parts
 }
 
 func promptContentBlock(part PromptPart, cache *providers.CacheControl) providers.ContentBlock {

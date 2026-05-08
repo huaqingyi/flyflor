@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/sipeed/picoclaw/pkg/bus"
@@ -13,6 +14,7 @@ import (
 	runtimeevents "github.com/sipeed/picoclaw/pkg/events"
 	"github.com/sipeed/picoclaw/pkg/logger"
 	"github.com/sipeed/picoclaw/pkg/providers"
+	"github.com/sipeed/picoclaw/pkg/sandbox"
 	"github.com/sipeed/picoclaw/pkg/tools"
 	"github.com/sipeed/picoclaw/pkg/utils"
 )
@@ -203,6 +205,7 @@ toolLoop:
 							Async:      hookResult.Async,
 						},
 					)
+					ts.noteToolExecution(toolName, hookResult.IsError)
 
 					messages = append(messages, toolResultMsg)
 					if !ts.opts.NoHistory {
@@ -313,12 +316,60 @@ toolLoop:
 			}
 		}
 
+		var sandboxDecision *sandbox.Decision
+		if al.sandboxBox != nil {
+			decision := al.sandboxBox.Assess(sandbox.Call{
+				Profile:   ts.opts.SandboxProfile,
+				Tool:      toolName,
+				Arguments: toolArgs,
+				Channel:   ts.channel,
+				ChatID:    ts.chatID,
+				Workspace: ts.agent.Workspace,
+			})
+			sandboxDecision = &decision
+			al.emitEvent(
+				runtimeevents.KindAgentSandboxAssessed,
+				ts.eventMeta("runTurn", "turn.sandbox.assessed"),
+				SandboxAssessedPayload{
+					Profile: string(decision.Profile),
+					Tool:    decision.Tool,
+					Risk:    string(decision.Risk),
+					Action:  string(decision.Action),
+					Reasons: append([]string(nil), decision.Reasons...),
+				},
+			)
+			if decision.Action == sandbox.ActionDeny {
+				exec.allResponsesHandled = false
+				denyContent := hookDeniedToolContent("Tool execution denied by sandbox box", strings.Join(decision.Reasons, "; "))
+				al.emitEvent(
+					runtimeevents.KindAgentToolExecSkipped,
+					ts.eventMeta("runTurn", "turn.tool.skipped"),
+					ToolExecSkippedPayload{
+						Tool:   toolName,
+						Reason: denyContent,
+					},
+				)
+				deniedMsg := providers.Message{
+					Role:       "tool",
+					Content:    denyContent,
+					ToolCallID: tc.ID,
+				}
+				messages = append(messages, deniedMsg)
+				if !ts.opts.NoHistory {
+					ts.agent.Sessions.AddFullMessage(ts.sessionKey, deniedMsg)
+					ts.recordPersistedMessage(deniedMsg)
+				}
+				continue
+			}
+		}
+
 		if al.hooks != nil {
 			approval := al.hooks.ApproveTool(turnCtx, &ToolApprovalRequest{
 				Meta:      ts.eventMeta("runTurn", "turn.tool.approve"),
 				Context:   cloneTurnContext(ts.turnCtx),
 				Tool:      toolName,
 				Arguments: toolArgs,
+				Sandbox:   sandboxDecision,
 			})
 			if !approval.Approved {
 				exec.allResponsesHandled = false
@@ -579,6 +630,7 @@ toolLoop:
 				Async:      toolResult.Async,
 			},
 		)
+		ts.noteToolExecution(toolName, toolResult.IsError)
 		messages = append(messages, toolResultMsg)
 		if !ts.opts.NoHistory {
 			ts.agent.Sessions.AddFullMessage(ts.sessionKey, toolResultMsg)

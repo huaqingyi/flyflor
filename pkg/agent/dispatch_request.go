@@ -5,6 +5,7 @@ import (
 
 	"github.com/sipeed/picoclaw/pkg/bus"
 	"github.com/sipeed/picoclaw/pkg/routing"
+	"github.com/sipeed/picoclaw/pkg/sandbox"
 	"github.com/sipeed/picoclaw/pkg/session"
 )
 
@@ -80,6 +81,9 @@ func normalizeProcessOptions(opts processOptions) processOptions {
 	}
 	if opts.Dispatch.SessionScope == nil {
 		opts.Dispatch.SessionScope = session.CloneScope(opts.SessionScope)
+	}
+	if opts.SandboxProfile == "" {
+		opts.SandboxProfile = sandbox.ProfileStandard
 	}
 	if opts.Dispatch.InboundContext == nil {
 		if opts.InboundContext != nil {

@@ -26,6 +26,7 @@ import (
 	"github.com/sipeed/picoclaw/pkg/media"
 	"github.com/sipeed/picoclaw/pkg/providers"
 	"github.com/sipeed/picoclaw/pkg/routing"
+	"github.com/sipeed/picoclaw/pkg/sandbox"
 	"github.com/sipeed/picoclaw/pkg/session"
 	"github.com/sipeed/picoclaw/pkg/state"
 	"github.com/sipeed/picoclaw/pkg/utils"
@@ -50,6 +51,7 @@ type AgentLoop struct {
 	running        atomic.Bool
 	contextManager ContextManager
 	blackboard     *BlackboardScheduler
+	sandboxBox     *sandbox.Box
 	fallback       *providers.FallbackChain
 	channelManager interfaces.ChannelManager
 	mediaStore     media.MediaStore
@@ -103,6 +105,9 @@ type processOptions struct {
 	InboundContext          *bus.InboundContext    // Normalized inbound facts for events/hooks
 	RouteResult             *routing.ResolvedRoute // Route decision snapshot for events/hooks
 	SessionScope            *session.SessionScope  // Session scope snapshot for events/hooks
+	BlackboardMode          BlackboardMode         // direct, direct-with-watch, or blackboard
+	Complexity              *ComplexityAssessment  // Per-turn blackboard complexity decision
+	SandboxProfile          sandbox.Profile        // standard or yolo execution profile
 }
 
 type continuationTarget struct {
@@ -522,24 +527,58 @@ func (al *AgentLoop) runAgentLoop(
 		opts.Dispatch.SessionAliases,
 	)
 
-	if al.blackboard != nil {
-		lease, err := al.blackboard.BeginTurn(opts.Dispatch.SessionKey)
+	if opts.Complexity == nil {
+		opts.Complexity = al.assessBlackboardComplexity(agent, opts, nil)
+	}
+	if opts.BlackboardMode == "" {
+		opts.BlackboardMode = opts.Complexity.Mode
+	} else if opts.Complexity != nil {
+		opts.Complexity.Mode = opts.BlackboardMode
+	}
+
+	var result turnResult
+	var ts *turnState
+	for attempt := 0; attempt < 2; attempt++ {
+		if attempt > 0 {
+			opts.BlackboardMode = BlackboardModeBlackboard
+			if opts.Complexity != nil {
+				opts.Complexity.Mode = BlackboardModeBlackboard
+				opts.Complexity.Reasons = stableReasons(append(opts.Complexity.Reasons, "auto_escalated"))
+			}
+		}
+
+		turnScope := al.newTurnEventScope(
+			agent.ID,
+			opts.Dispatch.SessionKey,
+			newTurnContext(opts.Dispatch.InboundContext, opts.Dispatch.RouteResult, opts.Dispatch.SessionScope),
+		)
+		al.emitComplexityAssessed(turnScope, opts.Complexity)
+
+		var lease *BlackboardTurnLease
+		if al.blackboard != nil && opts.BlackboardMode == BlackboardModeBlackboard {
+			var err error
+			lease, err = al.blackboard.BeginTurn(opts.Dispatch.SessionKey)
+			if err != nil {
+				return "", err
+			}
+		}
+
+		ts = newTurnState(agent, opts, turnScope)
+		pipeline := NewPipeline(al)
+		var err error
+		func() {
+			if lease != nil {
+				defer lease.Done()
+			}
+			result, err = al.runTurn(ctx, ts, pipeline)
+		}()
 		if err != nil {
 			return "", err
 		}
-		defer lease.Done()
-	}
-
-	turnScope := al.newTurnEventScope(
-		agent.ID,
-		opts.Dispatch.SessionKey,
-		newTurnContext(opts.Dispatch.InboundContext, opts.Dispatch.RouteResult, opts.Dispatch.SessionScope),
-	)
-	ts := newTurnState(agent, opts, turnScope)
-	pipeline := NewPipeline(al)
-	result, err := al.runTurn(ctx, ts, pipeline)
-	if err != nil {
-		return "", err
+		if result.status == TurnEndStatusEscalated && attempt == 0 {
+			continue
+		}
+		break
 	}
 	if result.status == TurnEndStatusAborted {
 		return "", nil

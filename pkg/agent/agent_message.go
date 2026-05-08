@@ -11,6 +11,7 @@ import (
 	"github.com/sipeed/picoclaw/pkg/constants"
 	"github.com/sipeed/picoclaw/pkg/logger"
 	"github.com/sipeed/picoclaw/pkg/routing"
+	"github.com/sipeed/picoclaw/pkg/sandbox"
 	"github.com/sipeed/picoclaw/pkg/session"
 	"github.com/sipeed/picoclaw/pkg/utils"
 )
@@ -40,9 +41,31 @@ func (al *AgentLoop) ProcessDirect(
 	return al.ProcessDirectWithChannel(ctx, content, sessionKey, "cli", "direct")
 }
 
+func (al *AgentLoop) ProcessDirectWithSandboxProfile(
+	ctx context.Context,
+	content, sessionKey string,
+	profile sandbox.Profile,
+) (string, error) {
+	return al.processDirectWithOverrides(ctx, content, sessionKey, "cli", "direct", processMessageOverrides{
+		SandboxProfile: profile,
+	})
+}
+
 func (al *AgentLoop) ProcessDirectWithChannel(
 	ctx context.Context,
 	content, sessionKey, channel, chatID string,
+) (string, error) {
+	return al.processDirectWithOverrides(ctx, content, sessionKey, channel, chatID, processMessageOverrides{})
+}
+
+type processMessageOverrides struct {
+	SandboxProfile sandbox.Profile
+}
+
+func (al *AgentLoop) processDirectWithOverrides(
+	ctx context.Context,
+	content, sessionKey, channel, chatID string,
+	overrides processMessageOverrides,
 ) (string, error) {
 	if err := al.ensureHooksInitialized(ctx); err != nil {
 		return "", err
@@ -62,7 +85,7 @@ func (al *AgentLoop) ProcessDirectWithChannel(
 		SessionKey: sessionKey,
 	}
 
-	return al.processMessage(ctx, msg)
+	return al.processMessageWithOverrides(ctx, msg, overrides)
 }
 
 func (al *AgentLoop) ProcessHeartbeat(
@@ -103,6 +126,14 @@ func (al *AgentLoop) ProcessHeartbeat(
 }
 
 func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage) (string, error) {
+	return al.processMessageWithOverrides(ctx, msg, processMessageOverrides{})
+}
+
+func (al *AgentLoop) processMessageWithOverrides(
+	ctx context.Context,
+	msg bus.InboundMessage,
+	overrides processMessageOverrides,
+) (string, error) {
 	msg = bus.NormalizeInboundMessage(msg)
 
 	// Add message preview to log (show full content for error messages)
@@ -183,6 +214,7 @@ func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage)
 		EnableSummary:           true,
 		SendResponse:            false,
 		AllowInterimPicoPublish: true,
+		SandboxProfile:          overrides.SandboxProfile,
 	}
 
 	// context-dependent commands check their own Runtime fields and report

@@ -283,6 +283,43 @@ General rule:
 - lower threshold: use the primary model more often
 - higher threshold: use the light model more aggressively
 
+## Blackboard Routing
+
+Model routing and blackboard routing are separate.
+
+Model routing chooses the model tier for a turn. Blackboard routing chooses
+whether the turn should use Flyflor's internal blackboard workbench.
+
+The public configuration is intentionally small:
+
+```json
+{
+  "agents": {
+    "defaults": {
+      "blackboard_routing": {
+        "enabled": true,
+        "direct_threshold": 0.35,
+        "threshold": 0.55,
+        "allow_auto_escalation": true
+      }
+    }
+  }
+}
+```
+
+Blackboard routing follows convention over configuration:
+
+- scores below `direct_threshold` use direct agent execution
+- scores between the two thresholds use direct execution with runtime watch
+- scores at or above `threshold` use the blackboard
+- blackboard discussions target 3 rounds and never exceed 5 rounds
+- unresolved blackboard work returns a `flyflor-decision-form` block for user decision
+- reusable lessons may be emitted as `Methodology Reflection Draft` Markdown
+
+Do not tune scoring weights or round limits per deployment. If the defaults are
+wrong, improve the runtime convention and tests instead. See
+[Blackboard Workbench](../architecture/blackboard-workbench.md) for details.
+
 Practical suggestions:
 
 - `0.25` if you want safer routing with fewer light-model turns

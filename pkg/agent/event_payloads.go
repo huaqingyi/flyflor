@@ -12,6 +12,9 @@ const (
 	TurnEndStatusError TurnEndStatus = "error"
 	// TurnEndStatusAborted indicates the turn was hard-aborted and rolled back.
 	TurnEndStatusAborted TurnEndStatus = "aborted"
+	// TurnEndStatusEscalated indicates a watched direct turn rolled back and
+	// restarted in blackboard mode.
+	TurnEndStatusEscalated TurnEndStatus = "escalated"
 )
 
 // TurnStartPayload describes the start of a turn.
@@ -26,6 +29,35 @@ type TurnEndPayload struct {
 	Iterations      int
 	Duration        time.Duration
 	FinalContentLen int
+}
+
+// ComplexityAssessedPayload describes the blackboard routing decision for a turn.
+type ComplexityAssessedPayload struct {
+	Mode            string
+	Score           float64
+	DirectThreshold float64
+	Threshold       float64
+	Reasons         []string
+	HardGate        bool
+	Features        ComplexityFeatures
+}
+
+// BlackboardEscalatedPayload describes a direct-with-watch turn restarting in
+// blackboard mode.
+type BlackboardEscalatedPayload struct {
+	FromMode string
+	ToMode   string
+	Reason   string
+	Score    float64
+}
+
+// SandboxAssessedPayload describes the sandbox decision for a tool call.
+type SandboxAssessedPayload struct {
+	Profile string
+	Tool    string
+	Risk    string
+	Action  string
+	Reasons []string
 }
 
 // LLMRequestPayload describes an outbound LLM request.
